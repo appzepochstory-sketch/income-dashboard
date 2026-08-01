@@ -148,11 +148,19 @@
   }
 
   // ---------- 固定費 / 経費 ----------
+  // 固定費・経費のタブにはID列が無いので、行番号だけを送ると
+  // シート側で行を消したあとに開きっぱなしのタブから保存したとき、別の行を潰してしまう。
+  // 画面が掴んだ時点の値を一緒に送り、サーバが同じ行かを確かめてから書く。
+  // 組み立て方は GAS の incFingerprint_ と揃えること。
+  function fixedPrint(r) { return [r.name, r.amount].join('|'); }
+  function expensePrint(r) { return [r.date, r.item, r.amount].join('|'); }
+
   function editFixed(r) {
     var f = $('fFixed');
     ['row', 'name', 'amount', 'payday', 'category', 'from', 'to', 'note'].forEach(function (k) {
       f[k].value = r[k] == null ? '' : r[k];
     });
+    f.expected.value = fixedPrint(r);
     $('fixedFormTitle').textContent = '固定費を編集（' + r.name + '）';
     window.scrollTo(0, 0);
   }
@@ -162,6 +170,7 @@
     ['row', 'date', 'item', 'vendor', 'amount', 'category', 'method', 'ref', 'source', 'status'].forEach(function (k) {
       f[k].value = r[k] == null ? '' : r[k];
     });
+    f.expected.value = expensePrint(r);
     f.confirmed.checked = !!r.confirmed;
     $('expFormTitle').textContent = '経費を編集';
     window.scrollTo(0, 0);
@@ -169,7 +178,7 @@
 
   function confirmExpense(r, btn) {
     btn.disabled = true;
-    IncApi.call('confirmExpense', { row: r.row })
+    IncApi.call('confirmExpense', { row: r.row, expected: expensePrint(r) })
       .then(function () { IncViews.toast('確定にしたよ'); return boot(S.year); })
       .catch(function (e) { btn.disabled = false; IncViews.toast(e.message, true); });
   }
@@ -177,11 +186,13 @@
   $('fixedReset').onclick = function () {
     $('fFixed').reset();
     $('fFixed').row.value = '';
+    $('fFixed').expected.value = '';
     $('fixedFormTitle').textContent = '固定費を追加';
   };
   $('expReset').onclick = function () {
     $('fExpense').reset();
     $('fExpense').row.value = '';
+    $('fExpense').expected.value = '';
     $('fExpense').status.value = '';
     $('expFormTitle').textContent = '経費を追加';
   };
