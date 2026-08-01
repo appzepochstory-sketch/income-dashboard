@@ -225,13 +225,6 @@
   bind('fFixed', 'saveFixed', '固定費を保存したよ', function () { $('fixedFormTitle').textContent = '固定費を追加'; });
   bind('fExpense', 'saveExpense', '経費を保存したよ', function () { $('expFormTitle').textContent = '経費を追加'; });
 
-  // 日付欄はどこをタップしてもピッカーを開く（右端のアイコンを狙わせない）
-  document.querySelectorAll('input[type=date]').forEach(function (input) {
-    input.addEventListener('click', function () {
-      if (input.showPicker) { try { input.showPicker(); } catch (e) { /* 未対応環境は標準動作のまま */ } }
-    });
-  });
-
   // ---------- ナビ / ?tab= ----------
   function setView(name) {
     document.querySelectorAll('#nav button').forEach(function (b) {
