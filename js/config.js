@@ -5,7 +5,7 @@
  */
 window.INC_CONFIG = {
   // GAS Web App（API用デプロイ）の /exec URL。デプロイし直したらこの1行だけ差し替える。
-  endpoint: 'REPLACE_WITH_API_EXEC_URL',
+  endpoint: 'https://script.google.com/macros/s/AKfycby1DbhheE5F-Zdpabq3-NSW0uTtPd7wSi51YjWhm5yrgDdjulp2LIIZj4VnD23b7gi-/exec',
   views: ['dash', 'input', 'consign', 'fixed', 'expense'],
   timeoutMs: 45000
 };
