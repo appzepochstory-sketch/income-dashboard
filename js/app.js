@@ -13,8 +13,10 @@
   // ---------- 起動 ----------
   function boot(year) {
     return IncApi.bootstrap(year).then(show).catch(function (e) {
-      // 合言葉が変わった・失効したときは入力画面に戻す
-      if (/合言葉/.test(e.message)) { IncApi.forget(); openGate(e.message); }
+      // 合言葉が違う＝保存済みトークンが役に立たないので消して入力画面に戻す。
+      // ロック中・未設定は入れ直しても直らないので、消さずにそのまま伝える。
+      if (e.code === 'AUTH') { IncApi.forget(); openGate('合言葉が変わったみたい。入れ直してね。'); }
+      else if (e.code === 'LOCKED' || e.code === 'SETUP') openGate(e.message);
       else IncViews.toast(e.message, true);
       throw e;
     });

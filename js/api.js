@@ -50,9 +50,16 @@ window.IncApi = (function () {
     });
   }
 
-  function send(action, payload, overrideToken) {
+  function fail(message, code) {
+    var err = new Error(message);
+    err.code = code || 'ERROR';
+    return err;
+  }
+
+  function once(action, payload, overrideToken) {
     var ctrl = ('AbortController' in window) ? new AbortController() : null;
     var timer = setTimeout(function () { if (ctrl) ctrl.abort(); }, cfg.timeoutMs);
+    var done = function () { clearTimeout(timer); };
 
     return fetch(endpoint(), {
       method: 'POST',
@@ -62,23 +69,38 @@ window.IncApi = (function () {
       redirect: 'follow',
       signal: ctrl ? ctrl.signal : undefined
     }).then(function (res) {
-      if (!res.ok) throw new Error('APIエラー HTTP ' + res.status);
+      if (!res.ok) throw fail('APIエラー HTTP ' + res.status, 'NETWORK');
       return res.text();
     }).then(function (text) {
-      var json;
-      try { json = JSON.parse(text); }
-      catch (e) { throw new Error('APIの応答を解釈できません: ' + text.slice(0, 120)); }
-      if (!json.ok) throw new Error(json.error || '不明なエラー');
+      // GAS は302を挟むので、まれに本文が落ちて doGet 側のテキストが返ってくる。
+      // JSONで無いときは中身を画面に出さず、呼び出し側にやり直させる。
+      if (text.charAt(0) !== '{') throw fail('通信に失敗したよ。もう一度試してね。', 'NETWORK');
+      var json = JSON.parse(text);
+      if (!json.ok) throw fail(json.error || '不明なエラー', json.code);
       return json.data;
-    }).catch(function (err) {
-      if (err && err.name === 'AbortError') throw new Error('APIがタイムアウトしました');
-      throw err;
     }).then(function (v) {
-      clearTimeout(timer);
+      done();
       return v;
     }, function (e) {
-      clearTimeout(timer);
+      done();
+      if (e && e.name === 'AbortError') throw fail('APIがタイムアウトしました', 'NETWORK');
       throw e;
+    });
+  }
+
+  // やり直してよいのは読み取りだけ。
+  // GAS は /exec で302を挟むので、まれに本文が落ちて doGet 側の応答が返ってくるが、
+  // 実行ログを見ると doPost は走り切っている（＝シートには既に書かれている）。
+  // 書き込みを再送すると二重登録になるので、読み取り以外はやり直さない（2026-08-01 実測）。
+  var RETRYABLE = { bootstrap: true, squareItems: true };
+
+  function send(action, payload, overrideToken) {
+    return once(action, payload, overrideToken).catch(function (err) {
+      if (err.code !== 'NETWORK') throw err;
+      if (!RETRYABLE[action]) {
+        throw fail('通信が不安定みたい。画面を読み込み直して、反映されてなければもう一度試してね。', 'NETWORK');
+      }
+      return once(action, payload, overrideToken);
     });
   }
 
