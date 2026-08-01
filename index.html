@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="no-referrer">
+<title>EPOCHSTORY / INCOME</title>
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- 合言葉ゲート。通過するまで下の画面はデータを1件も持たない -->
+<div id="gate" class="gate">
+  <form id="gateForm" class="gate-box">
+    <div class="gate-brand">EPOCHSTORY<span>/ INCOME</span></div>
+    <label>合言葉
+      <input type="password" id="gatePass" autocomplete="current-password" required>
+    </label>
+    <button class="btn" type="submit">ひらく</button>
+    <p class="gate-msg" id="gateMsg">この端末では初回だけ合言葉が必要だよ</p>
+  </form>
+</div>
+
+<header class="hd" hidden>
+  <div class="hd-brand">EPOCHSTORY<span>/ INCOME</span></div>
+  <select id="year" class="hd-year" aria-label="年"></select>
+</header>
+
+<main id="app" hidden>
+
+  <section class="view" data-view="dash">
+    <div class="hero">
+      <div class="hero-label" id="heroLabel">今月の手残り</div>
+      <div class="hero-num" id="heroProfit">—</div>
+      <div class="hero-sub">
+        <span>収入 <b id="heroIncome">—</b></span>
+        <span>経費 <b id="heroCost">—</b></span>
+      </div>
+    </div>
+
+    <div class="grid2">
+      <div class="card kpi"><span class="kpi-l">今年の総収入</span><span class="kpi-v" id="ytdIncome">—</span><span class="kpi-s" id="ytdIncomeNote"></span></div>
+      <div class="card kpi"><span class="kpi-l">今年の手残り</span><span class="kpi-v" id="ytdProfit">—</span><span class="kpi-s" id="ytdProfitNote"></span></div>
+    </div>
+
+    <div class="card">
+      <h2>月次推移</h2>
+      <div class="chart-wrap"><div id="chart"></div></div>
+      <div class="legend" id="legend"></div>
+    </div>
+
+    <div class="card">
+      <h2>今月の内訳 <span class="h2-sub" id="breakdownMonth"></span></h2>
+      <div id="breakdown"></div>
+      <div class="yoy" id="yoy"></div>
+    </div>
+
+    <div class="card">
+      <h2>委託在庫</h2>
+      <div id="stock"></div>
+    </div>
+
+    <div class="card">
+      <h2>未納品の案件</h2>
+      <div id="pipeline"></div>
+    </div>
+
+    <a class="sheetlink" id="sheetLink" target="_blank" rel="noopener">スプレッドシートを開く →</a>
+  </section>
+
+  <section class="view" data-view="input" hidden>
+    <div class="card">
+      <h2>イラスト案件を追加</h2>
+      <form id="fIllust">
+        <label>依頼日<input type="date" name="ordered" required></label>
+        <label>納品日<input type="date" name="delivered"><small>空欄＝進行中</small></label>
+        <label>種類<select name="kind" data-options="illustKinds"></select></label>
+        <label>クライアント種別<select name="client" data-options="clientTypes"></select></label>
+        <label>価格<input type="number" name="price" inputmode="numeric" required></label>
+        <label>備考<textarea name="note" rows="2"></textarea></label>
+        <div class="hintbox" id="custHint"></div>
+        <button class="btn" type="submit">追加する</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>Epochstory販売を追加<small class="warn">対面販売など手入力分のみ</small></h2>
+      <form id="fSale">
+        <label>販売日<input type="date" name="date" required></label>
+        <label>販売場所<select name="place"><option>直接</option><option>EC</option></select></label>
+        <label>商品名<input name="name" list="dlSquareItems" required><small id="sqHintSale"></small></label>
+        <label>種類<select name="kind" data-options="consignKinds"></select></label>
+        <label>カラー<input name="color" placeholder="Black / -"></label>
+        <label>サイズ<select name="size" data-options="sizes"></select></label>
+        <label>価格<input type="number" name="price" inputmode="numeric" required></label>
+        <label>備考<textarea name="note" rows="2"></textarea></label>
+        <button class="btn" type="submit">追加する</button>
+      </form>
+    </div>
+  </section>
+
+  <section class="view" data-view="consign" hidden>
+    <div class="card">
+      <h2>委託商品を追加</h2>
+      <form id="fConsign">
+        <label>委託日<input type="date" name="date" required></label>
+        <label>委託先<select name="place" data-options="consignPlaces" data-allow-new="1" required></select></label>
+        <label>商品名<input name="name" list="dlSquareItems" required><small id="sqHint"></small></label>
+        <label>種類<select name="kind" data-options="consignKinds" data-allow-new="1"></select></label>
+        <label>カラー<input name="color" placeholder="Black / -"></label>
+        <label>サイズ<select name="size" data-options="sizes"></select></label>
+        <label>価格<input type="number" name="price" inputmode="numeric" required></label>
+        <label>備考<textarea name="note" rows="2"></textarea></label>
+        <button class="btn" type="submit">追加する</button>
+      </form>
+    </div>
+
+    <div class="card">
+      <h2>販売状況</h2>
+      <div class="filters" id="consignFilters"></div>
+      <div id="consignList"></div>
+    </div>
+  </section>
+
+  <section class="view" data-view="fixed" hidden>
+    <div class="card">
+      <h2 id="fixedFormTitle">固定費を追加</h2>
+      <form id="fFixed">
+        <input type="hidden" name="row">
+        <label>項目<input name="name" required></label>
+        <label>金額<input type="number" name="amount" inputmode="numeric" required></label>
+        <label>支払日<input name="payday" placeholder="毎月27日 など"></label>
+        <label>カテゴリ<select name="category" data-options="fixedCategories"></select></label>
+        <label>開始月<input type="date" name="from"></label>
+        <label>終了月<input type="date" name="to"><small>空欄＝継続中</small></label>
+        <label>メモ<textarea name="note" rows="2"></textarea></label>
+        <div class="row2">
+          <button class="btn" type="submit">保存する</button>
+          <button class="btn ghost" type="button" id="fixedReset">新規に戻す</button>
+        </div>
+      </form>
+    </div>
+    <div class="card">
+      <h2>登録済み</h2>
+      <div id="fixedList"></div>
+    </div>
+  </section>
+
+  <section class="view" data-view="expense" hidden>
+    <div class="card">
+      <h2 id="expFormTitle">経費を追加</h2>
+      <form id="fExpense">
+        <input type="hidden" name="row">
+        <input type="hidden" name="ref">
+        <input type="hidden" name="source">
+        <input type="hidden" name="status">
+        <label>日付<input type="date" name="date" required></label>
+        <label>内訳<input name="item"></label>
+        <label>取引先<input name="vendor"></label>
+        <label>金額<input type="number" name="amount" inputmode="numeric"></label>
+        <label>カテゴリ<select name="category" data-options="expenseCategories"></select></label>
+        <label>支払方法<select name="method" data-options="payMethods"></select></label>
+        <label class="chk"><input type="checkbox" name="confirmed">確定にする</label>
+        <div class="row2">
+          <button class="btn" type="submit">保存する</button>
+          <button class="btn ghost" type="button" id="expReset">新規に戻す</button>
+        </div>
+      </form>
+      <p class="note">Gmailからの取込は毎月末に自動で走るよ。ここは下書きの確定と手入力用。</p>
+    </div>
+    <div class="card">
+      <h2>経費一覧</h2>
+      <div id="expenseList"></div>
+    </div>
+  </section>
+</main>
+
+<nav id="nav" hidden>
+  <button data-go="dash">DASH</button>
+  <button data-go="input">入力</button>
+  <button data-go="consign">委託</button>
+  <button data-go="fixed">固定費</button>
+  <button data-go="expense">経費</button>
+</nav>
+
+<datalist id="dlSquareItems"></datalist>
+<div id="toast" class="toast"></div>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/views.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
