@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ja" data-theme="night">
+<html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -14,7 +14,8 @@
 <!-- 紙のざらつき。装飾なので操作は透かす（pointer-events:none） -->
 <svg class="grain" aria-hidden="true"><filter id="grf"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="3"/></filter><rect width="100%" height="100%" filter="url(#grf)"/></svg>
 
-<!-- アイコンとステッカーの原版。使う側は <use href="#..."> で参照する -->
+<!-- アイコンの原版。使う側は <use href="#..."> で参照する。
+     装飾のステッカーは実物（Square のカタログにある販売中のデザイン）を img/*.webp に置いてある -->
 <svg width="0" height="0" aria-hidden="true" style="position:absolute"><defs>
   <symbol id="ic-dash" viewBox="0 0 24 24">
     <path d="M3.2 20.3h17.6"/><path d="M6 20V13.4"/><path d="M11 20V9"/><path d="M16 20v-4.2"/><path d="M20 20V5.4"/>
@@ -57,25 +58,6 @@
     <path d="M50 30c-7-9-19-12-28-6C10 32 7 49 13 63c5 12 15 24 24 24 5 0 8-3 13-3s8 3 13 3c9 0 19-12 24-24 6-14 3-31-9-39-9-6-21-3-28 6z"/>
     <path d="M50 30c0-10 6-17 16-20 1 10-5 18-16 20z"/>
   </symbol>
-  <symbol id="st-dusty" viewBox="0 0 100 100">
-    <path d="M50 22c-17 0-30 15-30 33 0 17 13 31 30 31s30-14 30-31c0-18-13-33-30-33z"/>
-    <path d="M50 23c-5-7-14-10-19-7 4 7 11 10 19 7zM50 23c5-7 14-10 19-7-4 7-11 10-19 7z"/>
-    <ellipse cx="39" cy="52" rx="5.5" ry="7" fill="var(--paper2)"/><ellipse cx="62" cy="52" rx="5.5" ry="7" fill="var(--paper2)"/>
-  </symbol>
-  <symbol id="st-daruma" viewBox="0 0 100 100">
-    <path d="M50 12c-19 0-31 17-31 40 0 21 13 36 31 36s31-15 31-36c0-23-12-40-31-40z"/>
-    <circle cx="50" cy="46" r="20" fill="var(--paper2)"/><circle cx="42" cy="44" r="4"/><circle cx="58" cy="44" r="4"/>
-    <path d="M40 58c6 4 14 4 20 0" stroke="var(--ink)" stroke-width="3" fill="none"/>
-  </symbol>
-  <symbol id="st-cup" viewBox="0 0 100 100">
-    <path d="M20 40h50v26c0 10-8 18-18 18H38c-10 0-18-8-18-18z"/>
-    <path d="M70 48h8a10 10 0 010 20h-8" fill="none" stroke="currentColor" stroke-width="7"/>
-    <path d="M34 12c-5 6 3 10-2 16M50 10c-5 6 3 10-2 16" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round"/>
-  </symbol>
-  <symbol id="st-smoke" viewBox="0 0 100 100">
-    <path d="M52 90c0-14 14-16 14-28S50 50 50 38s16-14 16-26" fill="none" stroke="currentColor" stroke-width="8" stroke-linecap="round"/>
-    <circle cx="30" cy="28" r="8"/><circle cx="74" cy="72" r="6"/>
-  </symbol>
 </defs></svg>
 
 <!-- 合言葉ゲート。通過するまで下の画面はデータを1件も持たない -->
@@ -107,9 +89,10 @@
         <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#st-apple"/></svg>
         <b>INCOME</b><i id="brandYear"></i>
       </div>
+      <!-- 年と月は「いつを見ているか」の1組。年は全タブに効き、月は DASH の当月ぶんだけに効く -->
       <div class="topright">
-        <button class="themebtn" id="themeBtn" type="button">紙にする</button>
         <select class="yearsel" id="year" aria-label="年"></select>
+        <select class="yearsel" id="month" aria-label="月"></select>
       </div>
     </div>
   </header>
@@ -131,14 +114,13 @@
         </svg>
       </div>
       <div class="tape" aria-hidden="true"></div>
-      <svg class="stick st-hero-r" viewBox="0 0 100 100" aria-hidden="true"><use href="#st-dusty"/></svg>
+      <img class="stick st-hero-r" src="img/apple-girl.webp" alt="" aria-hidden="true">
       <div class="hero-in">
         <div class="hero-cap"><span class="lbl nomb" id="heroLabel">今月の手残り</span><em id="heroYm"></em></div>
         <div class="hero-num" id="heroNum">—</div>
         <div class="hero-rule"></div>
         <div class="hero-sub" id="heroSub"></div>
       </div>
-      <svg class="stick st-hero-l" viewBox="0 0 100 100" aria-hidden="true"><use href="#st-daruma"/></svg>
     </div>
 
     <div class="grid2">
@@ -161,7 +143,7 @@
     <div class="plate">
       <div class="lbl tilt2" id="breakdownLabel">今月の内訳</div>
       <div id="breakdown"></div>
-      <svg class="stick st-brk" viewBox="0 0 100 100" aria-hidden="true"><use href="#st-cup"/></svg>
+      <img class="stick st-brk" src="img/bag-boy.webp" alt="" aria-hidden="true">
     </div>
 
     <div class="plate">
@@ -173,6 +155,7 @@
 
     <div class="plate">
       <div class="tape b" aria-hidden="true"></div>
+      <img class="stick st-pipe" src="img/cone-boy.webp" alt="" aria-hidden="true">
       <div class="lbl">まだ納品してない案件</div>
       <div id="pipeline"></div>
     </div>
@@ -187,7 +170,7 @@
       <div class="lbl">あずけ先ごとの数</div>
       <div class="statgrid" id="placeStat"></div>
       <div class="statfoot" id="placeFoot"></div>
-      <svg class="stick st-place" viewBox="0 0 100 100" aria-hidden="true"><use href="#st-daruma"/></svg>
+      <img class="stick st-place" src="img/dino-boy.webp" alt="" aria-hidden="true">
     </div>
     <div class="plate">
       <div class="lbl wine">あずけている商品</div><span class="lbl-sub">タップで販売中⇄売り切れ</span>
@@ -219,7 +202,7 @@
         <b class="w">要確認</b>＝金額がメールから取れなかったもの。タップすると確定にできる。<br>
         <b>確定</b>＝金額まで取れて確認済み。メールからの取り込みは毎月末に裏で自動で走る。
       </div>
-      <svg class="stick st-exp" viewBox="0 0 100 100" aria-hidden="true"><use href="#st-smoke"/></svg>
+      <img class="stick st-exp" src="img/balloon-girl.webp" alt="" aria-hidden="true">
     </div>
     <div class="plate" id="expenseFormBox"><div id="expenseForm"></div></div>
   </section>

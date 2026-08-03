@@ -33,11 +33,17 @@ window.IncViews = (function () {
     children.forEach(function (c) { node.appendChild(c); });
   }
 
-  /** 金額は「¥」だけ小さく置く（数字の桁を主役にする）。 */
+  /**
+   * 金額は「¥」だけ小さく置く（数字の桁を主役にする）。
+   * マイナスは「¥-1,234」ではなく「−¥1,234」。符号は通貨記号の前に出す
+   * （一覧の .amt も同じ並びなので、赤字の月を選んだときに書式がぶれない）。
+   */
   function bigYen(n) {
+    var v = Math.round(n || 0);
     var frag = document.createDocumentFragment();
+    if (v < 0) frag.appendChild(document.createTextNode('−'));
     frag.appendChild(el('small', null, '¥'));
-    frag.appendChild(document.createTextNode(Math.round(n || 0).toLocaleString('ja-JP')));
+    frag.appendChild(document.createTextNode(Math.abs(v).toLocaleString('ja-JP')));
     return frag;
   }
 
@@ -75,11 +81,26 @@ window.IncViews = (function () {
 
   // ---------- DASH 上段 ----------
 
-  function hero(S) {
-    var m = S.thisMonth;
+  /** 選んだ月がまだ来ていない＝実績が入りようがない月かどうか。 */
+  function isFuture(S, m) {
+    var now = new Date();
+    if (S.year > now.getFullYear()) return true;
+    return S.year === now.getFullYear() && m > S.thisMonth;
+  }
+
+  /**
+   * 上段。m は画面で選んでいる月で、下段の「今年の…」は m に連動させない。
+   * 連動させると「今年の総収入」が過去月を選ぶたびに減り、年の数字の意味が壊れる。
+   */
+  function hero(S, m) {
+    var latest = S.thisMonth;
     $('heroWord').textContent = (m + 1) + '月';
-    $('heroLabel').textContent = (S.year === new Date().getFullYear()) ? '今月の手残り' : (m + 1) + '月の手残り';
-    $('heroYm').textContent = S.year + '.' + String(m + 1).padStart(2, '0');
+    $('heroLabel').textContent =
+      (S.year === new Date().getFullYear() && m === latest) ? '今月の手残り' : (m + 1) + '月の手残り';
+    // 先の月にも「フリーランス収入」の確定分だけは入っている。
+    // 数字が出ること自体は正しいので、実績と取り違えないように但し書きを添える。
+    $('heroYm').textContent = S.year + '.' + String(m + 1).padStart(2, '0') +
+      (isFuture(S, m) ? '・確定分だけ' : '');
 
     var profit = S.profit[m];
     var num = $('heroNum');
@@ -95,13 +116,14 @@ window.IncViews = (function () {
 
     var ytdIncome = $('ytdIncome');
     clear(ytdIncome);
-    ytdIncome.appendChild(bigYen(sumTo(S.incomeTotal, m)));
-    $('ytdIncomeNote').textContent = '1〜' + (m + 1) + '月の実績';
+    ytdIncome.appendChild(bigYen(sumTo(S.incomeTotal, latest)));
+    $('ytdIncomeNote').textContent = '1〜' + (latest + 1) + '月の実績';
 
     var ytdProfit = $('ytdProfit');
     clear(ytdProfit);
-    ytdProfit.appendChild(bigYen(sumTo(S.profit, m)));
-    $('ytdProfitNote').textContent = '経費 ' + yen(sumTo(S.expense, m)) + ' / 固定費 ' + yen(sumTo(S.fixed, m)) + ' を引いた額';
+    ytdProfit.appendChild(bigYen(sumTo(S.profit, latest)));
+    $('ytdProfitNote').textContent = '経費 ' + yen(sumTo(S.expense, latest)) +
+      ' / 固定費 ' + yen(sumTo(S.fixed, latest)) + ' を引いた額';
   }
 
   /**
@@ -124,11 +146,16 @@ window.IncViews = (function () {
   /**
    * 月次推移。viewBox を実表示幅に合わせる＝1単位=1px で文字が縮まない。
    * 中身は自前の数値と PALETTE だけなので innerHTML で差し込んで問題ない。
+   *
+   * 既定で描くのは実績のある latest 月まで。先の月を選んだときだけそこまで伸ばす
+   * （伸びた月に入っているのは確定済みのフリーランス収入だけなので、その旨を見出しに出す）。
    */
-  function chart(S) {
+  function chart(S, m) {
     var box = $('chartbox');
-    var last = S.thisMonth;
-    $('chartSub').textContent = '1〜' + (last + 1) + '月・積み上げ';
+    var latest = S.thisMonth;
+    var last = Math.max(latest, m);
+    $('chartSub').textContent = '1〜' + (last + 1) + '月・積み上げ' +
+      (last > latest ? '（' + (latest + 2) + '月以降は確定分だけ）' : '');
 
     var raw = box.getBoundingClientRect().width;
     // 計測不能（0付近）のときだけ既定値。下限で丸めると狭い画面で 1:1 が崩れる
@@ -159,12 +186,12 @@ window.IncViews = (function () {
       s += '<text x="' + (PL - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" font-weight="800" fill="' +
            ink2 + '">' + (v / 10000) + '万</text>';
     }
-    for (var m = 0; m <= last; m++) {
-      var gx = PL + pitch * m + pitch / 2;
+    for (var mo = 0; mo <= last; mo++) {
+      var gx = PL + pitch * mo + pitch / 2;
       var bx = gx - bw / 2 - cw / 2 - 2;
       var acc = 0;
       for (var k = 0; k < S.streams.length; k++) {
-        var val = S.income[S.streams[k]][m];
+        var val = S.income[S.streams[k]][mo];
         if (!val) continue;
         var h = (val / max) * plotH;
         s += '<rect x="' + bx.toFixed(1) + '" y="' + (y(acc) - h).toFixed(1) + '" width="' + bw.toFixed(1) +
@@ -172,7 +199,7 @@ window.IncViews = (function () {
              '" stroke="' + ink + '" stroke-width="1.4"/>';
         acc += val;
       }
-      var cost = S.fixed[m] + S.expense[m];
+      var cost = S.fixed[mo] + S.expense[mo];
       if (cost > 0) {
         var ch = (cost / max) * plotH;
         s += '<rect x="' + (bx + bw + 3).toFixed(1) + '" y="' + (y(0) - ch).toFixed(1) + '" width="' + cw.toFixed(1) +
@@ -183,12 +210,13 @@ window.IncViews = (function () {
              '" text-anchor="middle" font-size="11" font-weight="900" fill="' + ink + '">' +
              Math.round(acc / 10000) + '</text>';
       }
-      if (m === last) {
+      // 選んでいる月をライムの枠で示す（月セレクタと一対一で対応させる）
+      if (mo === m) {
         s += '<rect x="' + (gx - 13).toFixed(1) + '" y="' + (H - PB + 11) + '" width="26" height="20" fill="' +
              color('lime') + '" stroke="' + ink + '" stroke-width="2.4"/>';
       }
       s += '<text x="' + gx.toFixed(1) + '" y="' + (H - PB + 25) +
-           '" text-anchor="middle" font-size="12" font-weight="900" fill="' + ink + '">' + (m + 1) + '</text>';
+           '" text-anchor="middle" font-size="12" font-weight="900" fill="' + ink + '">' + (mo + 1) + '</text>';
     }
     s += '<text x="' + (W - PR) + '" y="' + (H - 3) + '" text-anchor="end" font-size="11" font-weight="800" fill="' +
          ink3 + '">単位：万円／細い赤は経費＋固定費</text></svg>';
@@ -208,8 +236,7 @@ window.IncViews = (function () {
     return b;
   }
 
-  function breakdown(S) {
-    var m = S.thisMonth;
+  function breakdown(S, m) {
     var total = S.incomeTotal[m];
     $('breakdownLabel').textContent = (m + 1) + '月の内訳';
 

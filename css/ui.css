@@ -140,14 +140,14 @@ textarea{min-height:64px;line-height:1.5}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 .toast.err{border-color:var(--wine);background:var(--wine)}
 
-/* ---------- トップバーの操作 ---------- */
+/* ---------- トップバーの操作（年・月） ---------- */
+/* min-width は「1月」のような2文字でも指の幅を割らないため（狭い画面で 40px を切る） */
 .yearsel{background:var(--paper2);color:var(--ink);border:2px solid var(--paper2);border-radius:2px;
-  padding:9px 7px;font-size:12px;font-weight:900;font-family:inherit;min-height:40px;
-  -webkit-appearance:none;appearance:none;width:auto;max-width:104px;box-shadow:none}
-.themebtn{background:none;border:2px solid rgba(251,246,236,.75);color:var(--paper2);border-radius:2px;
-  font-family:inherit;font-size:10px;font-weight:900;letter-spacing:.06em;
-  min-height:40px;padding:0 9px;cursor:pointer;white-space:nowrap}
+  padding:9px 7px;font-size:12px;font-weight:900;font-family:inherit;min-height:40px;min-width:46px;
+  -webkit-appearance:none;appearance:none;width:auto;max-width:104px;box-shadow:none;cursor:pointer}
+/* 月は「いま見ている月」なのでライムを敷いて、押せることと選択中であることを同時に示す */
+#month{background:var(--lime);border-color:var(--lime)}
 
 @media (max-width:359px){
-  .themebtn{padding:0 7px;font-size:9px}
+  .yearsel{padding:9px 5px;font-size:11px}
 }

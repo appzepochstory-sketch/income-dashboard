@@ -11,28 +11,21 @@
  *   JS より先に効かせないと初回描画が真っ白になるため、CSS 側が持つ唯一の色。
  *   インキ・シリーズ色（ink / wine / lime / s1..s4 / neg）は js/config.js の PALETTE が唯一の出所で、
  *   theme.js が :root へ流し込む。チャートも同じ PALETTE を読む。
+ *
+ * テーマは夜（オフブラックの地）1本だけ（2026-08-03 オーナー指示で切替を廃止）。
+ * 数字が載るプレートは紙色のままなので、地が暗くても可読性は変わらない。
  */
 
 :root{
-  --paper:#EDE4D3;      /* 地：クラフト寄りの生成り */
-  --paper2:#FBF6EC;     /* プレート：明るい上質紙 */
-  --paper3:#E3D8C2;     /* 沈める紙 */
-  --shade:#191519;      /* ハード影（版ズレ） */
-  --topbar:#191519;
-  --dot1:rgba(25,21,25,.9);
-  --dot2:rgba(122,34,51,.9);
-  --onground:#191519;   /* 地の上に直に置く文字 */
-  --nav-h:66px;
-}
-html[data-theme="night"]{
-  --paper:#17151A;
-  --paper2:#F7F1E4;
-  --paper3:#DED3C0;
-  --shade:#7A2233;      /* 夜は版ズレをバーガンディで＝リソグラフの誤差 */
+  --paper:#17151A;      /* 地：オフブラック */
+  --paper2:#F7F1E4;     /* プレート：明るい上質紙 */
+  --paper3:#DED3C0;     /* 沈める紙 */
+  --shade:#7A2233;      /* ハード影＝版ズレをバーガンディで（リソグラフの誤差） */
   --topbar:#7A2233;
   --dot1:rgba(251,246,236,.5);
   --dot2:rgba(212,255,0,.3);
-  --onground:#F7F1E4;
+  --onground:#F7F1E4;   /* 地の上に直に置く文字 */
+  --nav-h:66px;
 }
 
 *{box-sizing:border-box;margin:0;padding:0}
@@ -86,14 +79,24 @@ body::before{content:"";position:fixed;inset:0;background:var(--paper);opacity:.
 .tape.k{background:repeating-linear-gradient(45deg,rgba(25,21,25,.3) 0 4px,rgba(25,21,25,.1) 4px 8px)}
 .tape.b{top:auto;bottom:-12px;left:auto;right:34px;transform:rotate(-2deg);background:rgba(63,93,117,.4)}
 
-/* ステッカー：プレートの外へはみ出させる（内側に収めると"柄"になる） */
-.stick{position:absolute;pointer-events:none;z-index:3;
-  filter:drop-shadow(1.5px 2px 0 var(--ink)) drop-shadow(0 2px 3px rgba(25,21,25,.3))}
-.st-hero-r{width:62px;height:62px;right:-16px;top:-20px;fill:var(--wine);transform:rotate(13deg)}
-.st-hero-l{width:40px;height:40px;left:-9px;bottom:-17px;fill:var(--s1);transform:rotate(-16deg)}
-.st-brk{width:44px;height:44px;right:-17px;bottom:-16px;fill:var(--s2);transform:rotate(11deg)}
-.st-place{width:46px;height:46px;right:-18px;top:-18px;fill:var(--s3);transform:rotate(14deg)}
-.st-exp{width:40px;height:40px;left:-16px;bottom:-16px;fill:var(--ink2);transform:rotate(-12deg)}
+/* ステッカー：実際に売っているデザイン（img/*.webp）を、プレートの角へ貼り出す。
+   中身は透過画像なので drop-shadow がダイカットの輪郭に沿う＝「貼ってある」感が出る。
+
+   置き場所は全部「プレートの右上」に揃えてある。ここだけが唯一、どのプレートでも
+   確実に空いているため（左上は見出しラベル、下端は合計金額と操作ボタンが来る。
+   プレートの中身は全部が全幅のブロックなので、左右の余白 16px に逃がすこともできない）。
+   数字と本文の矩形に1pxでも重ねない。重なりの有無は DevTools ではなく
+   getBoundingClientRect の総当たりで確かめること（透過ぶんを含めて安全側で見る）。
+
+   はみ出しは右へ 10px 前後まで。画面の右端で切れると「貼った」ではなく「事故」に見えるので、
+   回転で膨らむぶんを含めて表示領域の内側に収める（body は overflow-x:hidden なので切れても気付けない）。 */
+.stick{position:absolute;pointer-events:none;z-index:3;width:auto;
+  filter:drop-shadow(1.5px 2px 0 var(--ink)) drop-shadow(0 2px 3px rgba(25,21,25,.35))}
+.st-hero-r{height:68px;right:-6px;top:-30px;transform:rotate(11deg)}
+.st-brk{height:56px;right:-8px;top:-26px;transform:rotate(10deg)}
+.st-pipe{height:52px;right:-9px;top:-24px;transform:rotate(-9deg)}
+.st-place{height:58px;right:-6px;top:-26px;transform:rotate(13deg)}
+.st-exp{height:52px;right:-9px;top:-24px;transform:rotate(-11deg)}
 
 /* ---------- トップ ---------- */
 .topbar{background:var(--topbar);color:var(--paper2);padding:9px 14px 13px;position:relative;overflow:hidden}

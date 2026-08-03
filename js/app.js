@@ -11,6 +11,8 @@
 
   var S = null;                     // bootstrap の応答
   var cfg = window.INC_CONFIG;
+  var selMonth = null;              // DASH で見ている月（0..11）。年の数字には効かせない
+  var urlMonth = null;              // ?m= で開かれたときの初回だけの指定
   var consignFilter = 'all';
   var consignLimit = 8;
   var formsReady = false;
@@ -55,7 +57,13 @@
   }
 
   function show(data) {
+    // 年が変わったら、その年の「いちばん新しい月」に合わせ直す（前年を開いたら12月）。
+    // 同じ年の読み直し（保存のあと）では、見ていた月を動かさない。
+    var sameYear = S && S.year === data.year;
     S = data;
+    if (urlMonth != null) { selMonth = urlMonth; urlMonth = null; }
+    else if (selMonth == null || !sameYear) selMonth = S.thisMonth;
+
     $('gate').hidden = true;
     $('topwrap').hidden = false;
     $('app').hidden = false;
@@ -65,14 +73,14 @@
 
   function render() {
     fillYear();
+    fillMonth();
     ensureForms();
     IncForms.refreshOptions(document, S.options);
     fillSquareItems();
     fillHints();
 
-    IncViews.hero(S);
+    renderMonth();
     IncViews.forecast(S);
-    IncViews.breakdown(S);
     IncViews.stock(S);
     IncViews.pipeline(S);
     IncViews.consignPlaces(S);
@@ -82,7 +90,17 @@
 
     $('brandYear').textContent = S.year;
     $('sheetLink').href = S.sheetUrl;
-    if (currentView() === 'dash') IncViews.chart(S);
+  }
+
+  /** 月を選び直したときに描き直すのはこの3つだけ（年の数字とタブの一覧は動かさない）。 */
+  function renderMonth() {
+    IncViews.hero(S, selMonth);
+    IncViews.breakdown(S, selMonth);
+    drawChart();
+  }
+
+  function drawChart() {
+    if (S && currentView() === 'dash') IncViews.chart(S, selMonth);
   }
 
   // ---------- 合言葉ゲート ----------
@@ -131,7 +149,7 @@
     });
   });
 
-  // ---------- 年 ----------
+  // ---------- 年 / 月 ----------
   function fillYear() {
     var sel = $('year');
     if (!sel.options.length) {
@@ -140,6 +158,20 @@
       sel.onchange = function () { reload(parseInt(sel.value, 10)); };
     }
     sel.value = S.year;
+  }
+
+  /** 月の選択。データは12ヶ月ぶん揃っているので、通信せず画面だけ描き直す。 */
+  function fillMonth() {
+    var sel = $('month');
+    if (!sel.options.length) {
+      for (var i = 0; i < 12; i++) sel.appendChild(new Option((i + 1) + '月', i));
+      sel.onchange = function () {
+        selMonth = parseInt(sel.value, 10);
+        renderMonth();
+        syncUrl();
+      };
+    }
+    sel.value = selMonth;
   }
 
   // ---------- フォーム ----------
@@ -297,24 +329,30 @@
       v.hidden = (v.dataset.view !== name);
     });
     window.scrollTo(0, 0);
-    if (name === 'dash' && S) IncViews.chart(S);
+    drawChart();
+  }
+
+  /** いまの画面をそのまま開き直せるURLにしておく（タブと月の両方を載せる）。 */
+  function syncUrl() {
+    var q = '?tab=' + currentView();
+    if (selMonth != null) q += '&m=' + (selMonth + 1);
+    history.replaceState(null, '', q);
   }
 
   document.querySelectorAll('#nav button[data-go]').forEach(function (b) {
     b.onclick = function () {
       setView(b.dataset.go);
-      history.replaceState(null, '', '?tab=' + b.dataset.go);
+      syncUrl();
     };
   });
   document.querySelector('#nav button[data-add]').onclick = function () {
     if (S) openPicker();
   };
 
-  $('themeBtn').onclick = function () {
-    $('themeBtn').textContent = (IncTheme.toggle() === 'night') ? '紙にする' : '夜にする';
-    if (S && currentView() === 'dash') IncViews.chart(S);
-  };
-  $('themeBtn').textContent = (IncTheme.current() === 'night') ? '紙にする' : '夜にする';
+  // 装飾のステッカーが読めなかったときは黙って消す（無くても画面は成立する）
+  document.querySelectorAll('img.stick').forEach(function (img) {
+    img.addEventListener('error', function () { img.remove(); });
+  });
 
   // ナビの実寸を本文の下余白に反映（＋のぶんだけ高さが変わるため）
   function syncNavHeight() {
@@ -327,18 +365,22 @@
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(function () {
       syncNavHeight();
-      if (S && currentView() === 'dash') IncViews.chart(S);
+      drawChart();
     }, 150);
   });
 
   /**
-   * ?tab= の入口。旧レイアウトの ?tab=input は画面が無くなったので、
+   * ?tab= / ?m= の入口。旧レイアウトの ?tab=input は画面が無くなったので、
    * DASH を出したうえで追加シートを開く（リンクが死なないように）。
+   * 月は 1〜12 の範囲外・数字以外なら黙って捨てて、その年の最新月で開く。
    */
   function initView() {
-    var q = (new URLSearchParams(location.search).get('tab') || '').toLowerCase();
-    if (q === cfg.addTab) return { view: cfg.views[0], add: true };
-    return { view: cfg.views.indexOf(q) >= 0 ? q : cfg.views[0], add: false };
+    var q = new URLSearchParams(location.search);
+    var tab = (q.get('tab') || '').toLowerCase();
+    var m = parseInt(q.get('m'), 10);
+    if (m >= 1 && m <= 12) urlMonth = m - 1;
+    if (tab === cfg.addTab) return { view: cfg.views[0], add: true };
+    return { view: cfg.views.indexOf(tab) >= 0 ? tab : cfg.views[0], add: false };
   }
 
   var start = initView();
@@ -353,6 +395,6 @@
   requestAnimationFrame(function () {
     syncNavHeight();
     // 初回は幅が 0 で読めることがあるので、レイアウト確定後にもう一度描く
-    requestAnimationFrame(function () { if (S && currentView() === 'dash') IncViews.chart(S); });
+    requestAnimationFrame(drawChart);
   });
 })();
