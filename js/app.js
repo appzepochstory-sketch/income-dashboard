@@ -182,14 +182,23 @@
    * hero の左右スワイプで前月／翌月。月セレクタは画面の右上＝右手の親指から一番遠い角にあり、
    * それが一番よく触る操作になってしまったので、毎日見る hero 自体を送り手にする。
    * hero は DASH にしか無いので、他タブに漏れることはない。
+   *
+   * ただし画面の左右端から始まったスワイプは拾わない。そこは iOS の「戻る／進む」の帯で、
+   * hero の左端は viewport から 13px しか離れていないため、そのまま拾うと
+   * 「前月に戻ろうとしてブラウザごと前のページに戻り、ついでに月も動いている」になる。
+   * preventDefault で OS のジェスチャを奪いにいくと標準の操作を壊すうえ passive も外れるので、
+   * こちらが譲る。真ん中から始めれば今までどおり効く（帯を除いても幅は 270px 残る）。
    */
+  var EDGE_BAND = 24;   // iOS のエッジスワイプ判定はおよそ 20pt。少し広めに取って譲る
+
   (function () {
     var x0 = 0, y0 = 0, live = false;
     var hero = document.querySelector('.hero');
     hero.addEventListener('touchstart', function (ev) {
-      live = (ev.touches.length === 1);
+      var x = (ev.touches.length === 1) ? ev.touches[0].clientX : -1;
+      live = (x >= EDGE_BAND && x <= document.documentElement.clientWidth - EDGE_BAND);
       if (!live) return;
-      x0 = ev.touches[0].clientX;
+      x0 = x;
       y0 = ev.touches[0].clientY;
     }, { passive: true });
     hero.addEventListener('touchend', function (ev) {
