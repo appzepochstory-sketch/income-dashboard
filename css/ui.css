@@ -42,6 +42,12 @@ input[type=text],input[type=password],input[type=number],input[type=date],select
   padding:11px 10px;font-size:16px;font-weight:700;-webkit-appearance:none;appearance:none;
   box-shadow:2px 2px 0 rgba(25,21,25,.25);min-height:48px}
 input:focus,select:focus,textarea:focus{outline:3px solid var(--wine);outline-offset:1px}
+/* ボタンにも同じリングを当てる。指定しないとブラウザ既定のオレンジが出て、色の出所が破れる */
+button:focus-visible{outline:3px solid var(--wine);outline-offset:1px}
+/* 入力済みに見えないよう軽くするのは太さだけにする。
+   色をブラウザ既定（#757575＝4.09:1）に任せると AA を割るので、パレットの ink3 で明示する。
+   opacity:1 は Firefox が既定でさらに薄くするのを止めるため。 */
+::placeholder{color:var(--ink3);opacity:1;font-weight:600}
 /* 日付：欄のどこを押してもピッカー（右端のアイコンを狙い撃ちさせない） */
 input[type=date]{cursor:pointer;position:relative;background-image:none}
 input[type=date]::-webkit-calendar-picker-indicator{

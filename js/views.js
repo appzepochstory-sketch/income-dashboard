@@ -41,7 +41,12 @@ window.IncViews = (function () {
     return frag;
   }
 
-  /** 一覧の1行。右側は縦積み（375px で金額と操作が横に並んで溢れないように）。 */
+  /** 「A・B・C」形式の補足。空の項目は '-' を並べずに落とす。 */
+  function meta(parts, sep) {
+    return parts.filter(function (v) { return v && v !== '-'; }).join(sep || '・');
+  }
+
+  /** 一覧の1行。cls は右側の並べ方（既定は縦積み、'row-r h' で横並び）。 */
   function row(title, sub, rightNodes, cls) {
     var d = el('div', 'row');
     var m = el('div', 'row-m');
@@ -51,6 +56,13 @@ window.IncViews = (function () {
     rightNodes.forEach(function (n) { r.appendChild(n); });
     d.appendChild(m);
     d.appendChild(r);
+    return d;
+  }
+
+  /** 操作ボタンを持つ行。金額と操作を本文の下に回し、本文に全幅を渡す。 */
+  function actionRow(title, sub, rightNodes) {
+    var d = row(title, sub, rightNodes, 'row-r');
+    d.classList.add('stack');
     return d;
   }
 
@@ -223,9 +235,10 @@ window.IncViews = (function () {
     });
 
     var prev = S.prevYearTotal[m];
+    // 長い注記を入れると金額と噛み合わずに行が崩れるので短く保つ
     var sub = prev > 0
       ? '前年同月 ' + yen(prev) + ' → ' + (total - prev >= 0 ? '+' : '') + Math.round((total - prev) / prev * 100) + '%'
-      : '前年同月の比較データなし（フリーランス収入は前年シート未対応）';
+      : '前年比較はまだなし';
     box.appendChild(row((m + 1) + '月の収入', sub, [el('span', 'amt', yen(total))], 'row-r h'));
     box.lastChild.classList.add('brk-sum');
   }
@@ -269,7 +282,7 @@ window.IncViews = (function () {
       total += p.price;
       box.appendChild(row(
         p.note || p.kind || ('案件 ' + p.id),
-        (p.kind || '-') + '・' + (p.client || '-') + '／依頼 ' + dot(p.ordered) + '（' + p.days + '日経過）',
+        meta([meta([p.kind, p.client]), '依頼 ' + dot(p.ordered) + '（' + p.days + '日経過）'], '／'),
         [el('span', 'amt', yen(p.price)), el('span', 'tag' + (p.days > 60 ? ' hot' : ''), '未納品')]
       ));
     });
@@ -324,9 +337,9 @@ window.IncViews = (function () {
         var btn = el('button', 'tag tapme ' + (sold ? 'sold' : 'on'), r.status || '未設定');
         btn.type = 'button';
         btn.onclick = function () { onToggle(r, btn); };
-        box.appendChild(row(
+        box.appendChild(actionRow(
           r.name,
-          r.place + '／' + (r.kind || '-') + '・' + (r.size || '-') + '・' + (r.color || '-') + '／' + dot(r.date),
+          meta([r.place, meta([r.kind, r.size, r.color]), dot(r.date)], '／'),
           [el('span', 'amt', yen(r.price)), btn]
         ));
       });
@@ -360,9 +373,9 @@ window.IncViews = (function () {
       var b = el('button', 'btn mini', '編集');
       b.type = 'button';
       b.onclick = function () { onEdit(r); };
-      box.appendChild(row(
+      box.appendChild(actionRow(
         r.name,
-        (r.category || '-') + '／' + (r.payday || '支払日未設定') + (r.to ? '／〜' + dot(r.to) : ''),
+        meta([r.category, r.payday || '支払日未設定', r.to ? '〜' + dot(r.to) : ''], '／'),
         [el('span', 'amt neg', '−' + yen(r.amount)), b]
       ));
     });
@@ -397,10 +410,9 @@ window.IncViews = (function () {
       ed.onclick = function () { onEdit(r); };
       buttons.appendChild(ed);
 
-      box.appendChild(row(
+      box.appendChild(actionRow(
         r.item || '(内訳なし)',
-        (r.vendor || '-') + '／' + (r.category || '-') + '・' + (r.method || '-') + '／' + dot(r.date) +
-          (r.source ? '／' + r.source : ''),
+        meta([r.vendor, meta([r.category, r.method]), dot(r.date), r.source], '／'),
         [el('span', 'amt neg', r.amount ? '−' + yen(r.amount) : '金額未入力'), buttons]
       ));
     });

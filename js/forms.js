@@ -45,7 +45,7 @@ window.IncForms = (function () {
         { n: 'place', l: '販売場所', t: 'select', list: ['直接', 'EC', 'イベント'], preset: '直接' },
         { n: 'name', l: '商品名', t: 'text', req: true, datalist: 'dlSquareItems', hintId: 'sqHintSale' },
         { n: 'kind', l: '種類', t: 'select', opts: 'consignKinds' },
-        { n: 'color', l: 'カラー', t: 'text', ph: 'Black / -', half: true },
+        { n: 'color', l: 'カラー', t: 'text', ph: '例：Black', half: true },
         { n: 'size', l: 'サイズ', t: 'select', opts: 'sizes', half: true },
         { n: 'price', l: '価格', t: 'yen', req: true },
         { n: 'note', l: '備考', t: 'text' }
@@ -59,7 +59,7 @@ window.IncForms = (function () {
         { n: 'place', l: '委託先', t: 'select', req: true, opts: 'consignPlaces', add: '委託先の名前' },
         { n: 'name', l: '商品名', t: 'text', req: true, datalist: 'dlSquareItems', hintId: 'sqHint' },
         { n: 'kind', l: '種類', t: 'select', opts: 'consignKinds', add: '種類の名前' },
-        { n: 'color', l: 'カラー', t: 'text', ph: 'Black / -', half: true },
+        { n: 'color', l: 'カラー', t: 'text', ph: '例：Black', half: true },
         { n: 'size', l: 'サイズ', t: 'select', opts: 'sizes', half: true },
         { n: 'price', l: '価格', t: 'yen', req: true },
         { n: 'note', l: '備考', t: 'text' }
@@ -137,7 +137,8 @@ window.IncForms = (function () {
   function fillSelect(sel, values, addLabel) {
     var keep = sel.value;
     while (sel.firstChild) sel.removeChild(sel.firstChild);
-    sel.appendChild(new Option('', ''));
+    // 空ラベルだと「未入力」なのか「壊れている」のか見分けがつかないので文言を入れる
+    sel.appendChild(new Option('選んでね', ''));
     (values || []).forEach(function (v) { sel.appendChild(new Option(v, v)); });
     if (addLabel) sel.appendChild(new Option('＋ 新しく追加する…', NEW_VALUE));
     if (keep) setValue(sel, keep);   // 選択肢が縮んでも、選んでいた値を '' に落とさない
