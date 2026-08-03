@@ -147,10 +147,13 @@ main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
 .hero-rule{height:3px;background:var(--ink);width:62px;margin:9px 0 11px}
 .hero-sub{display:flex;gap:8px;flex-wrap:wrap}
 /* 月送りは右上のセレクタが本体だが、そこは右手の親指から一番遠い角。
-   毎日見る hero 自体をスワイプできるようにしてあるので、指のある環境にだけ案内を出す */
+   毎日見る hero 自体をスワイプできるようにしてあるので、指のある環境にだけ案内を出す。
+   右寄せなのは、hero の左下にハーフトーンの網が敷いてあるため。
+   この案内だけは不透明な下敷きを持たないので、左に置くと網の上に字が乗って読みにくくなる
+   （チップや数字は紙色のベタが下にあるので同じ問題は起きない）。 */
 .swipe-hint{display:none}
 @media (hover:none){
-  .swipe-hint{display:block;font-size:10px;font-weight:800;color:var(--ink3);
+  .swipe-hint{display:block;text-align:right;font-size:10px;font-weight:800;color:var(--ink3);
     letter-spacing:.04em;margin-top:10px}
 }
 .chipnum{background:var(--paper3);border:2px solid var(--ink);padding:5px 9px;font-size:11px;font-weight:800;white-space:nowrap}
