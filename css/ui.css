@@ -1,0 +1,147 @@
+/*
+ * ui.css — 触る部品の層。フォーム・ボタン・ナビ・ボトムシート・トースト・合言葉ゲート。
+ * 色は skin.css と js/config.js の PALETTE が出所。ここに生 hex は書かない。
+ *
+ * タップ領域の下限は 40px（押せるものは全部これを満たす）。
+ * position:fixed を使ってよいのは .nav / .sheet / .sheetbg / .toast / .gate だけ。
+ * 金額を覆う事故を構造的に断つため、本文に重なる fixed 要素は増やさない。
+ */
+
+/* ---------- 合言葉ゲート ---------- */
+.gate{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
+  padding:20px;background-color:var(--paper);
+  background-image:radial-gradient(var(--dot1) .9px, transparent 1px);background-size:9px 9px}
+.gate-box{width:100%;max-width:330px;margin:0}
+.gate-brand{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+.gate-brand svg{width:26px;height:26px;fill:var(--wine);flex:0 0 26px}
+.gate-brand b{font-size:14px;font-weight:900;letter-spacing:.14em}
+.gate-brand i{font-style:normal;font-size:10px;font-weight:800;color:var(--ink3);letter-spacing:.08em}
+.gate-msg{font-size:11px;font-weight:700;color:var(--ink2);margin-top:12px;line-height:1.5}
+.gate-msg.err{color:var(--wine)}
+
+/* 合言葉の表示切替（目）。見えないまま打って間違いに気づけない、を無くすためのもの。
+   欄の右端に重ねるので、文字がアイコンの下に潜らないぶんの余白を入力側に確保する。 */
+.fld.pw{position:relative}
+.fld.pw input{padding-right:56px}
+.eye{position:absolute;right:3px;bottom:3px;width:44px;height:44px;
+  display:grid;place-items:center;cursor:pointer;
+  background:none;border:2px solid transparent;border-radius:2px;color:var(--ink2)}
+.eye svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* 「いま見えている」状態はライムで示す＝アイコンの向き以外でも状態が分かる */
+.eye.on{background:var(--lime);border-color:var(--ink);color:var(--ink)}
+.eye:focus-visible{outline:3px solid var(--wine);outline-offset:1px}
+
+/* ---------- フォーム ---------- */
+.fld{display:block;margin-bottom:12px}
+.fld > span{display:block;font-size:11px;font-weight:900;letter-spacing:.06em;color:var(--ink2);margin-bottom:4px}
+.fld > span em{font-style:normal;color:var(--wine);margin-left:4px}
+.fld small{display:block;font-size:10px;color:var(--ink3);font-weight:700;margin-top:4px}
+input,select,textarea,button{font-family:inherit}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{
+  width:100%;background:var(--paper2);color:var(--ink);border:2px solid var(--ink);border-radius:2px;
+  padding:11px 10px;font-size:16px;font-weight:700;-webkit-appearance:none;appearance:none;
+  box-shadow:2px 2px 0 rgba(25,21,25,.25);min-height:48px}
+input:focus,select:focus,textarea:focus{outline:3px solid var(--wine);outline-offset:1px}
+/* 日付：欄のどこを押してもピッカー（右端のアイコンを狙い撃ちさせない） */
+input[type=date]{cursor:pointer;position:relative;background-image:none}
+input[type=date]::-webkit-calendar-picker-indicator{
+  position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
+input[type=date]::-webkit-date-and-time-value{text-align:left}
+.datewrap,.selwrap{position:relative}
+.datewrap::after,.selwrap::after{content:"▼";position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  font-size:9px;color:var(--ink2);pointer-events:none}
+select{padding-right:28px}
+textarea{min-height:64px;line-height:1.5}
+.half{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.newin{margin-top:6px}
+.chk{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800;color:var(--ink);
+  border:2px solid var(--ink);background:var(--paper3);padding:11px;margin-bottom:12px;min-height:48px;cursor:pointer}
+.chk input{width:22px;height:22px;flex:0 0 22px;min-height:0;box-shadow:none;accent-color:var(--wine)}
+
+.btn{width:100%;background:var(--ink);color:var(--paper2);border:2px solid var(--ink);border-radius:2px;
+  padding:15px;font-size:15px;font-weight:900;letter-spacing:.08em;cursor:pointer;
+  box-shadow:4px 4px 0 var(--wine);min-height:52px}
+.btn:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--wine)}
+.btn:disabled{opacity:.55;cursor:default}
+.btn.lime{background:var(--lime);color:var(--ink);box-shadow:4px 4px 0 var(--ink)}
+.btn.ghost{background:var(--paper2);color:var(--ink);box-shadow:3px 3px 0 var(--shade)}
+.btn.mini{width:auto;padding:9px 13px;font-size:12px;min-height:44px;box-shadow:2px 2px 0 var(--shade);
+  background:var(--paper2);color:var(--ink)}
+.row2{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:start}
+
+/* 行の右側に操作が2つ並ぶとき（経費の 確定/要確認 ＋ 編集）。狭い画面では折り返す */
+.rbtns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
+
+.chipbtn{background:var(--paper2);border:2px solid var(--ink);padding:10px 12px;font-size:11px;
+  font-weight:900;cursor:pointer;letter-spacing:.04em;box-shadow:2px 2px 0 var(--shade);min-height:42px;color:var(--ink)}
+.chipbtn.on{background:var(--ink);color:var(--paper2)}
+.chiprow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
+
+/* ---------- ナビ（案E：中央が＋） ---------- */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:50;background:var(--paper2);
+  border-top:3px solid var(--ink);padding-bottom:env(safe-area-inset-bottom)}
+.nav-in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+.nav button{background:none;border:0;cursor:pointer;padding:7px 1px 8px;display:flex;
+  flex-direction:column;align-items:center;gap:3px;min-height:var(--nav-h)}
+/* アイコンは常にインキ黒の線画なので、台紙は両テーマとも必ず紙色にする */
+.nav .plate-ic{width:34px;height:34px;border:2px solid var(--ink);background:var(--paper3);
+  display:grid;place-items:center;box-shadow:2px 2px 0 var(--shade)}
+.nav button:nth-child(1) .plate-ic{transform:rotate(-4deg)}
+.nav button:nth-child(2) .plate-ic{transform:rotate(3deg)}
+.nav button:nth-child(4) .plate-ic{transform:rotate(4deg)}
+.nav button:nth-child(5) .plate-ic{transform:rotate(-3deg)}
+.nav svg{width:22px;height:22px;stroke:var(--ink);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.nav span:last-child{font-size:10px;font-weight:900;letter-spacing:.04em;color:var(--ink3)}
+.nav button.on .plate-ic{background:var(--lime)}
+.nav button.on span:last-child{color:var(--ink)}
+/* 中央の＋は「追加」であってページではない。丸くして他タブと別物に見せる */
+.nav .plate-ic.plus{background:var(--lime);border-radius:50%;width:42px;height:42px;
+  transform:none;margin-top:-4px;margin-bottom:-4px;border-width:3px}
+.nav .plate-ic.plus::after{content:"＋";font-size:26px;font-weight:900;color:var(--ink);line-height:1}
+.nav button[data-add] span:last-child{color:var(--ink)}
+
+/* ---------- ボトムシート ---------- */
+.sheetbg{position:fixed;inset:0;background:rgba(25,21,25,.55);z-index:52;opacity:0;pointer-events:none;transition:.18s}
+.sheetbg.open{opacity:1;pointer-events:auto}
+/* visibility は「開くとき即座に visible／閉じるときはスライドが終わってから hidden」。
+   .22s かけて切り替えると、開いた直後は visibility:hidden のままで中の要素に focus できない */
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:55;background:var(--paper);
+  border-top:3px solid var(--ink);border-radius:14px 14px 0 0;
+  transform:translateY(102%);visibility:hidden;
+  transition:transform .22s cubic-bezier(.2,.8,.3,1), visibility 0s linear .22s;
+  max-height:88vh;overflow-y:auto;padding:8px 13px calc(18px + env(safe-area-inset-bottom))}
+.sheet.open{transform:translateY(0);visibility:visible;
+  transition:transform .22s cubic-bezier(.2,.8,.3,1), visibility 0s}
+.sheet-grip{width:52px;height:6px;background:var(--ink3);border-radius:99px;margin:6px auto 12px;cursor:grab}
+.sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px}
+.sheet-close{background:var(--paper2);border:2px solid var(--ink);font-size:18px;font-weight:900;
+  cursor:pointer;line-height:1;width:46px;height:46px;color:var(--ink);flex:0 0 46px;box-shadow:2px 2px 0 var(--shade)}
+.pickcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--paper2);
+  border:2px solid var(--ink);box-shadow:4px 4px 0 var(--shade);padding:15px 13px;margin-bottom:12px;cursor:pointer;color:var(--ink)}
+.pickcard:active{transform:translate(2px,2px);box-shadow:2px 2px 0 var(--shade)}
+.pickcard .ic{width:46px;height:46px;flex:0 0 46px;border:2px solid var(--ink);background:var(--s4);
+  display:grid;place-items:center}
+.pickcard .ic svg{width:26px;height:26px;stroke:var(--ink);fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.pickcard .tx b{display:block;font-size:15px;font-weight:900}
+.pickcard .tx span{display:block;font-size:11px;font-weight:700;color:var(--ink3);margin-top:2px}
+.pickcard.alt .ic{background:var(--s2)}
+
+/* ---------- トースト ---------- */
+.toast{position:fixed;left:50%;bottom:calc(var(--nav-h) + 26px);transform:translateX(-50%) translateY(12px);
+  z-index:70;background:var(--ink);color:var(--paper2);font-size:13px;font-weight:800;padding:11px 18px;
+  border:2px solid var(--lime);opacity:0;pointer-events:none;transition:.18s;max-width:90vw;
+  text-align:center;white-space:pre-wrap}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.err{border-color:var(--wine);background:var(--wine)}
+
+/* ---------- トップバーの操作 ---------- */
+.yearsel{background:var(--paper2);color:var(--ink);border:2px solid var(--paper2);border-radius:2px;
+  padding:9px 7px;font-size:12px;font-weight:900;font-family:inherit;min-height:40px;
+  -webkit-appearance:none;appearance:none;width:auto;max-width:104px;box-shadow:none}
+.themebtn{background:none;border:2px solid rgba(251,246,236,.75);color:var(--paper2);border-radius:2px;
+  font-family:inherit;font-size:10px;font-weight:900;letter-spacing:.06em;
+  min-height:40px;padding:0 9px;cursor:pointer;white-space:nowrap}
+
+@media (max-width:359px){
+  .themebtn{padding:0 7px;font-size:9px}
+}

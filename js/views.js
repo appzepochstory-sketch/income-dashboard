@@ -1,15 +1,26 @@
 /**
- * views.js — データ → DOM の描画だけを持つ層。
- * 通信もフォーム送信も知らないので、デザインを差し替えるときはこのファイルと css/app.css を入れ替える。
- * 受け取る data は API の bootstrap 応答そのまま。
+ * views.js — データ → DOM の描画だけを持つ層。通信もフォーム送信も知らない。
+ * 受け取る S は API の bootstrap 応答そのまま。数値はここで作らず、すべて S から導く。
+ *
+ * 表示の掟（design/20260801_収入ダッシュボード_UIモック.html から移植）:
+ *   数字は不透明な紙プレートの上にだけ置く。装飾はプレートの外側。
+ *   傾けるのはラベル・テープ・ステッカーとプレートの下敷きだけで、数字は常に水平。
+ *
+ * シート由来の文字列（商品名・取引先など）は textContent で入れる。
+ * innerHTML を使うのは、自前で組んだ数値だけの SVG（チャート）に限る。
  */
 window.IncViews = (function () {
   'use strict';
 
-  var SERIES_VAR = ['--s1', '--s2', '--s3', '--s4'];
+  var SERIES_KEY = ['s1', 's2', 's3', 's4'];
 
   function $(id) { return document.getElementById(id); }
+  function color(key) { return window.INC_CONFIG.palette[key]; }
   function yen(n) { return '¥' + Math.round(n || 0).toLocaleString('ja-JP'); }
+  function dot(s) { return String(s || '').replace(/-/g, '.'); }
+  function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+  function sumTo(a, m) { return a.slice(0, m + 1).reduce(function (x, y) { return x + y; }, 0); }
+
   function el(tag, cls, text) {
     var e = document.createElement(tag);
     if (cls) e.className = cls;
@@ -17,125 +28,236 @@ window.IncViews = (function () {
     return e;
   }
   function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
-  function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
-  function sumTo(a, m) { return a.slice(0, m + 1).reduce(function (x, y) { return x + y; }, 0); }
-  function cssVar(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function put(node, children) {
+    clear(node);
+    children.forEach(function (c) { node.appendChild(c); });
+  }
+
+  /** 金額は「¥」だけ小さく置く（数字の桁を主役にする）。 */
+  function bigYen(n) {
+    var frag = document.createDocumentFragment();
+    frag.appendChild(el('small', null, '¥'));
+    frag.appendChild(document.createTextNode(Math.round(n || 0).toLocaleString('ja-JP')));
+    return frag;
+  }
+
+  /** 一覧の1行。右側は縦積み（375px で金額と操作が横に並んで溢れないように）。 */
+  function row(title, sub, rightNodes, cls) {
+    var d = el('div', 'row');
+    var m = el('div', 'row-m');
+    m.appendChild(el('div', 'row-t', title));
+    if (sub != null) m.appendChild(el('div', 'row-s', sub));
+    var r = el('div', cls || 'row-r');
+    rightNodes.forEach(function (n) { r.appendChild(n); });
+    d.appendChild(m);
+    d.appendChild(r);
+    return d;
+  }
+
+  function chip(label, value, isNeg) {
+    var c = el('div', 'chipnum' + (isNeg ? ' neg' : ''));
+    c.appendChild(document.createTextNode(label));
+    c.appendChild(el('b', null, yen(value)));
+    return c;
+  }
+
+  // ---------- DASH 上段 ----------
 
   function hero(S) {
     var m = S.thisMonth;
-    $('heroLabel').textContent = S.year + '年' + (m + 1) + '月の手残り';
-    var p = S.profit[m];
-    var h = $('heroProfit');
-    h.textContent = yen(p);
-    h.className = 'hero-num' + (p < 0 ? ' minus' : '');
-    $('heroIncome').textContent = yen(S.incomeTotal[m]);
-    $('heroCost').textContent = yen(S.fixed[m] + S.expense[m]);
-    $('ytdIncome').textContent = yen(sumTo(S.incomeTotal, m));
-    $('ytdIncomeNote').textContent = '1〜' + (m + 1) + '月実績 / 通年 ' + yen(sum(S.incomeTotal));
-    $('ytdProfit').textContent = yen(sumTo(S.profit, m));
-    $('ytdProfitNote').textContent = '経費 ' + yen(sumTo(S.expense, m)) + ' / 固定費 ' + yen(sumTo(S.fixed, m));
+    $('heroWord').textContent = (m + 1) + '月';
+    $('heroLabel').textContent = (S.year === new Date().getFullYear()) ? '今月の手残り' : (m + 1) + '月の手残り';
+    $('heroYm').textContent = S.year + '.' + String(m + 1).padStart(2, '0');
+
+    var profit = S.profit[m];
+    var num = $('heroNum');
+    clear(num);
+    num.className = 'hero-num' + (profit < 0 ? ' neg' : '');
+    num.appendChild(bigYen(profit));
+
+    put($('heroSub'), [
+      chip('収入', S.incomeTotal[m], false),
+      chip('経費', S.expense[m], true),
+      chip('固定費', S.fixed[m], true)
+    ]);
+
+    var ytdIncome = $('ytdIncome');
+    clear(ytdIncome);
+    ytdIncome.appendChild(bigYen(sumTo(S.incomeTotal, m)));
+    $('ytdIncomeNote').textContent = '1〜' + (m + 1) + '月の実績';
+
+    var ytdProfit = $('ytdProfit');
+    clear(ytdProfit);
+    ytdProfit.appendChild(bigYen(sumTo(S.profit, m)));
+    $('ytdProfitNote').textContent = '経費 ' + yen(sumTo(S.expense, m)) + ' / 固定費 ' + yen(sumTo(S.fixed, m)) + ' を引いた額';
   }
 
-  /** 月次推移（収入4区分の積み上げ＋経費）。SVGを組み立てて差し込む。 */
-  function chart(S) {
-    var W = 700, H = 240, PAD_L = 8, PAD_B = 22, PAD_T = 10;
-    var bw = (W - PAD_L * 2) / 12;
-    var max = 0;
-    for (var i = 0; i < 12; i++) max = Math.max(max, S.incomeTotal[i], S.fixed[i] + S.expense[i]);
-    max = max || 1;
-    var scale = (H - PAD_B - PAD_T) / max;
-    var colors = SERIES_VAR.map(cssVar);
-    var negC = cssVar('--neg');
+  /**
+   * 年末までの着地。「ランレート」ではないのでラベルを勝手に変えないこと。
+   * 定義＝実績（1〜今月）＋ 確定している残り月の収入。
+   * 残り月の値はシートの「フリーランス収入」に入っている確定分だけで、
+   * 物販とイラスト案件は受注前なので 0 のまま入っている（＝画面に定数は持たない）。
+   */
+  function forecast(S) {
+    var m = S.thisMonth;
+    var landing = sum(S.incomeTotal);
+    var confirmed = landing - sumTo(S.incomeTotal, m);
+    var remain = 11 - m;
+    $('forecast').textContent = yen(landing);
+    $('forecastNote').textContent = remain > 0
+      ? '1〜' + (m + 1) + '月の実績 ＋ 残り' + remain + 'ヶ月の確定分 ' + yen(confirmed) + '（物販とイラスト案件は受注前なので0で計算）'
+      : '12ヶ月ぶんの実績（残り月なし）';
+  }
 
-    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="月次収入推移">';
-    for (var m = 0; m < 12; m++) {
-      var x = PAD_L + bw * m + bw * 0.12;
-      var w = bw * 0.5;
-      var y = H - PAD_B;
+  /**
+   * 月次推移。viewBox を実表示幅に合わせる＝1単位=1px で文字が縮まない。
+   * 中身は自前の数値と PALETTE だけなので innerHTML で差し込んで問題ない。
+   */
+  function chart(S) {
+    var box = $('chartbox');
+    var last = S.thisMonth;
+    $('chartSub').textContent = '1〜' + (last + 1) + '月・積み上げ';
+
+    var raw = box.getBoundingClientRect().width;
+    // 計測不能（0付近）のときだけ既定値。下限で丸めると狭い画面で 1:1 が崩れる
+    var W = raw > 120 ? Math.round(raw) : 300;
+    var H = 264;
+    // PB は「月ラベル＋当月マーク＋単位キャプション」が重ならない高さ
+    var PL = 40, PR = 6, PT = 16, PB = 54;
+    var plotW = W - PL - PR, plotH = H - PT - PB;
+
+    var peak = 0;
+    for (var i = 0; i <= last; i++) {
+      peak = Math.max(peak, S.incomeTotal[i], S.fixed[i] + S.expense[i]);
+    }
+    // データ由来。棒が突き抜けず、かつ上に空き帯を作らない高さ
+    var max = Math.ceil((peak || 1) / 100000) * 100000 + 100000;
+    var step = max > 800000 ? 400000 : 200000;
+    var y = function (v) { return PT + plotH - (v / max) * plotH; };
+    var pitch = plotW / (last + 1);
+    var bw = Math.min(22, pitch * 0.44), cw = Math.min(9, pitch * 0.18);
+    var ink = color('ink'), ink2 = color('ink2'), ink3 = color('ink3');
+
+    var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
+            '" role="img" aria-label="月次の収入内訳と経費の推移">';
+    for (var v = 0; v <= max; v += step) {
+      s += '<line x1="' + PL + '" x2="' + (W - PR) + '" y1="' + y(v) + '" y2="' + y(v) +
+           '" stroke="' + ink + '" stroke-width="' + (v === 0 ? 2 : 1) +
+           '" stroke-dasharray="' + (v === 0 ? '' : '3 4') + '" opacity="' + (v === 0 ? 1 : .32) + '"/>';
+      s += '<text x="' + (PL - 6) + '" y="' + (y(v) + 4) + '" text-anchor="end" font-size="11" font-weight="800" fill="' +
+           ink2 + '">' + (v / 10000) + '万</text>';
+    }
+    for (var m = 0; m <= last; m++) {
+      var gx = PL + pitch * m + pitch / 2;
+      var bx = gx - bw / 2 - cw / 2 - 2;
+      var acc = 0;
       for (var k = 0; k < S.streams.length; k++) {
-        var v = S.income[S.streams[k]][m];
-        if (v <= 0) continue;
-        var hgt = v * scale;
-        y -= hgt;
-        s += '<rect x="' + x.toFixed(1) + '" y="' + y.toFixed(1) + '" width="' + w.toFixed(1) +
-             '" height="' + hgt.toFixed(1) + '" fill="' + colors[k] + '"/>';
+        var val = S.income[S.streams[k]][m];
+        if (!val) continue;
+        var h = (val / max) * plotH;
+        s += '<rect x="' + bx.toFixed(1) + '" y="' + (y(acc) - h).toFixed(1) + '" width="' + bw.toFixed(1) +
+             '" height="' + h.toFixed(1) + '" fill="' + color(SERIES_KEY[k] || 's1') +
+             '" stroke="' + ink + '" stroke-width="1.4"/>';
+        acc += val;
       }
       var cost = S.fixed[m] + S.expense[m];
       if (cost > 0) {
-        var ch = cost * scale;
-        s += '<rect x="' + (x + w + bw * 0.06).toFixed(1) + '" y="' + (H - PAD_B - ch).toFixed(1) +
-             '" width="' + (bw * 0.22).toFixed(1) + '" height="' + ch.toFixed(1) + '" fill="' + negC + '"/>';
+        var ch = (cost / max) * plotH;
+        s += '<rect x="' + (bx + bw + 3).toFixed(1) + '" y="' + (y(0) - ch).toFixed(1) + '" width="' + cw.toFixed(1) +
+             '" height="' + ch.toFixed(1) + '" fill="' + color('neg') + '" stroke="' + ink + '" stroke-width="1.4"/>';
       }
-      s += '<text x="' + (x + bw * 0.3).toFixed(1) + '" y="' + (H - 7) +
-           '" fill="' + (m === S.thisMonth ? '#ededed' : '#5c5c5c') + '" font-size="11" text-anchor="middle">' + (m + 1) + '</text>';
+      if (acc > 0) {
+        s += '<text x="' + gx.toFixed(1) + '" y="' + (y(acc) - 7).toFixed(1) +
+             '" text-anchor="middle" font-size="11" font-weight="900" fill="' + ink + '">' +
+             Math.round(acc / 10000) + '</text>';
+      }
+      if (m === last) {
+        s += '<rect x="' + (gx - 13).toFixed(1) + '" y="' + (H - PB + 11) + '" width="26" height="20" fill="' +
+             color('lime') + '" stroke="' + ink + '" stroke-width="2.4"/>';
+      }
+      s += '<text x="' + gx.toFixed(1) + '" y="' + (H - PB + 25) +
+           '" text-anchor="middle" font-size="12" font-weight="900" fill="' + ink + '">' + (m + 1) + '</text>';
     }
-    s += '<line x1="0" y1="' + (H - PAD_B) + '" x2="' + W + '" y2="' + (H - PAD_B) + '" stroke="#2b2b2b"/></svg>';
-    $('chart').innerHTML = s;
+    s += '<text x="' + (W - PR) + '" y="' + (H - 3) + '" text-anchor="end" font-size="11" font-weight="800" fill="' +
+         ink3 + '">単位：万円／細い赤は経費＋固定費</text></svg>';
+    box.innerHTML = s;
 
-    var lg = $('legend');
-    clear(lg);
-    S.streams.concat(['経費+固定費']).forEach(function (name, i) {
-      var sp = el('span');
-      var ic = el('i');
-      ic.style.background = (i < SERIES_VAR.length) ? colors[i] : negC;
-      sp.appendChild(ic);
-      sp.appendChild(document.createTextNode(name));
-      lg.appendChild(sp);
-    });
+    put($('legend'), S.streams.map(function (name, i) {
+      return legendChip(name, color(SERIES_KEY[i] || 's1'));
+    }).concat([legendChip('経費+固定費', color('neg'))]));
+  }
+
+  function legendChip(name, bg) {
+    var b = el('b');
+    var i = el('i');
+    i.style.background = bg;
+    b.appendChild(i);
+    b.appendChild(document.createTextNode(name));
+    return b;
   }
 
   function breakdown(S) {
-    var m = S.thisMonth, box = $('breakdown');
-    $('breakdownMonth').textContent = (m + 1) + '月';
+    var m = S.thisMonth;
+    var total = S.incomeTotal[m];
+    $('breakdownLabel').textContent = (m + 1) + '月の内訳';
+
+    var box = $('breakdown');
     clear(box);
-    var total = S.incomeTotal[m] || 1;
     S.streams.forEach(function (name, i) {
       var v = S.income[name][m];
+      var pct = total ? Math.round(v / total * 100) : 0;
       var d = el('div', 'brk');
-      var top = el('div', 'brk-top');
-      top.appendChild(el('span', null, name));
-      top.appendChild(el('b', null, yen(v) + '　' + Math.round(v / total * 100) + '%'));
+      var top = el('div', 'brk-t');
+      var left = el('span', null, name);
+      left.appendChild(el('em', null, pct + '%'));
+      top.appendChild(left);
+      top.appendChild(el('b', null, yen(v)));
       var bar = el('div', 'brk-bar');
       var fill = el('i');
-      fill.style.width = Math.max(0, Math.min(100, v / total * 100)) + '%';
-      fill.style.background = cssVar(SERIES_VAR[i]);
+      fill.style.width = (total ? Math.max(0, Math.min(100, v / total * 100)) : 0) + '%';
+      fill.style.background = color(SERIES_KEY[i] || 's1');
       bar.appendChild(fill);
       d.appendChild(top);
       d.appendChild(bar);
       box.appendChild(d);
     });
 
-    var prev = S.prevYearTotal[m], cur = S.incomeTotal[m], y = $('yoy');
-    clear(y);
-    if (prev > 0) {
-      var diff = cur - prev;
-      y.appendChild(document.createTextNode('前年同月比（Epochstory販売＋委託＋イラストのみ） '));
-      y.appendChild(el('b', diff >= 0 ? 'up' : 'down', (diff >= 0 ? '+' : '') + Math.round(diff / prev * 100) + '%'));
-      y.appendChild(document.createTextNode(' / 前年 ' + yen(prev)));
-    } else {
-      y.textContent = '前年同月の比較データなし（フリーランス収入は前年シート未対応）';
-    }
+    var prev = S.prevYearTotal[m];
+    var sub = prev > 0
+      ? '前年同月 ' + yen(prev) + ' → ' + (total - prev >= 0 ? '+' : '') + Math.round((total - prev) / prev * 100) + '%'
+      : '前年同月の比較データなし（フリーランス収入は前年シート未対応）';
+    box.appendChild(row((m + 1) + '月の収入', sub, [el('span', 'amt', yen(total))], 'row-r h'));
+    box.lastChild.classList.add('brk-sum');
   }
 
   function stock(S) {
-    var box = $('stock');
+    var places = S.stock.length;
+    var onSale = 0, sold = 0, value = 0;
+    S.stock.forEach(function (r) { onSale += r.onSale; sold += r.sold; value += r.stockValue; });
+
+    $('stockSub').textContent = places + '店・' + (onSale + sold) + '点';
+    put($('stockStat'), [
+      statCell('あずけ中', onSale + sold),
+      statCell('販売中', onSale, true),
+      statCell('売り切れ', sold)
+    ]);
+
+    var box = $('stockList');
     clear(box);
-    if (!S.stock.length) { box.appendChild(el('div', 'empty', 'データなし')); return; }
-    var t = el('table');
-    var head = el('tr');
-    ['委託先', '販売中', '売切', '在庫金額'].forEach(function (h, i) {
-      head.appendChild(el('th', i ? 'n' : null, h));
-    });
-    t.appendChild(head);
+    if (!places) { box.appendChild(el('div', 'empty', 'まだ委託なし')); return; }
     S.stock.forEach(function (r) {
-      var tr = el('tr');
-      tr.appendChild(el('td', null, r.place));
-      tr.appendChild(el('td', 'n', String(r.onSale)));
-      tr.appendChild(el('td', 'n', String(r.sold)));
-      tr.appendChild(el('td', 'n', yen(r.stockValue)));
-      t.appendChild(tr);
+      box.appendChild(row(r.place, 'あずけ ' + (r.onSale + r.sold) + '点・在庫 ' + yen(r.stockValue), [
+        el('span', 'tag on', '販売中 ' + r.onSale),
+        el('span', 'tag sold', '売り切れ ' + r.sold)
+      ], 'row-r h'));
     });
-    box.appendChild(t);
+  }
+
+  function statCell(label, value, pick) {
+    var d = el('div', pick ? 'pick' : null);
+    d.appendChild(el('span', null, label));
+    d.appendChild(el('b', null, String(value)));
+    return d;
   }
 
   function pipeline(S) {
@@ -146,96 +268,164 @@ window.IncViews = (function () {
     S.pipeline.forEach(function (p) {
       total += p.price;
       box.appendChild(row(
-        p.note || p.kind || ('案件' + p.id),
-        p.ordered + ' 依頼 / ' + (p.client || '-') + ' / ' + (p.kind || '-'),
-        [el('div', 'amount', yen(p.price)), el('span', 'tag' + (p.days > 60 ? ' hot' : ''), p.days + '日経過')]
+        p.note || p.kind || ('案件 ' + p.id),
+        (p.kind || '-') + '・' + (p.client || '-') + '／依頼 ' + dot(p.ordered) + '（' + p.days + '日経過）',
+        [el('span', 'amt', yen(p.price)), el('span', 'tag' + (p.days > 60 ? ' hot' : ''), '未納品')]
       ));
     });
-    box.appendChild(el('div', 'yoy', '未納品 ' + S.pipeline.length + '件 / 合計 ' + yen(total)));
+    box.appendChild(el('div', 'foot', '進行中 ' + S.pipeline.length + '件・見込 ' + yen(total)));
   }
 
-  /** 一覧の1行（タイトル / 補足 / 右側の要素群）。 */
-  function row(title, sub, rightNodes) {
-    var d = el('div', 'item');
-    var m = el('div', 'item-m');
-    m.appendChild(el('div', 'item-t', title));
-    m.appendChild(el('div', 'item-s', sub));
-    var r = el('div', 'item-r');
-    rightNodes.forEach(function (n) { r.appendChild(n); });
-    d.appendChild(m);
-    d.appendChild(r);
-    return d;
+  // ---------- 委託 ----------
+
+  function consignPlaces(S) {
+    var box = $('placeStat');
+    var onSale = 0, sold = 0;
+    S.stock.forEach(function (r) { onSale += r.onSale; sold += r.sold; });
+    put(box, S.stock.map(function (r) { return statCell(r.place, r.onSale + r.sold); }));
+    if (!S.stock.length) put(box, [el('div', null, '—')]);
+    put($('placeFoot'), [
+      el('span', null, '販売中 ' + onSale),
+      el('span', null, '売り切れ ' + sold),
+      el('span', null, '合計 ' + (onSale + sold))
+    ]);
   }
 
-  /** 委託一覧。onToggle(row, status, button) は app.js から渡す。 */
-  function consign(S, filter, onToggle) {
+  /** 委託フィルタのチップ。onPick(value) は app.js から渡す。 */
+  function consignFilters(S, current, onPick) {
+    var defs = [['all', 'ぜんぶ'], ['販売中', '販売中'], ['売り切れ', '売り切れ']];
+    S.stock.forEach(function (r) { defs.push(['place:' + r.place, r.place]); });
+    put($('consignFilters'), defs.map(function (d) {
+      var b = el('button', 'chipbtn' + (current === d[0] ? ' on' : ''), d[1]);
+      b.type = 'button';
+      b.onclick = function () { onPick(d[0]); };
+      return b;
+    }));
+  }
+
+  function matchConsign(r, filter) {
+    if (filter === 'all') return true;
+    if (filter.indexOf('place:') === 0) return r.place === filter.slice(6);
+    return r.status === filter;
+  }
+
+  /** 委託一覧。onToggle(record, button) / onMore() は app.js から渡す。 */
+  function consign(S, filter, limit, onToggle, onMore) {
     var box = $('consignList');
     clear(box);
-    var rows = S.lists.consign.filter(function (r) { return filter === 'all' || r.status === filter; });
-    if (!rows.length) { box.appendChild(el('div', 'empty', '該当なし')); return; }
-    rows.slice(0, 120).forEach(function (r) {
-      var btn = el('button', 'btn mini ' + (r.status === '売り切れ' ? 'ghost' : ''), r.status || '未設定');
-      btn.onclick = function () { onToggle(r, btn); };
-      box.appendChild(row(
-        r.name,
-        r.date + ' / ' + r.place + ' / ' + (r.kind || '-') + (r.size && r.size !== '-' ? ' ' + r.size : ''),
-        [el('div', 'amount', yen(r.price)), btn]
-      ));
-    });
+    var rows = S.lists.consign.filter(function (r) { return matchConsign(r, filter); });
+    var view = rows.slice(0, limit);
+
+    if (!view.length) {
+      box.appendChild(el('div', 'empty', 'この条件のものは無い'));
+    } else {
+      view.forEach(function (r) {
+        var sold = (r.status === '売り切れ');
+        var btn = el('button', 'tag tapme ' + (sold ? 'sold' : 'on'), r.status || '未設定');
+        btn.type = 'button';
+        btn.onclick = function () { onToggle(r, btn); };
+        box.appendChild(row(
+          r.name,
+          r.place + '／' + (r.kind || '-') + '・' + (r.size || '-') + '・' + (r.color || '-') + '／' + dot(r.date),
+          [el('span', 'amt', yen(r.price)), btn]
+        ));
+      });
+    }
+
+    // フィルタチップと同じ見た目にすると「もう1つの絞り込み」に見えるので別の形にする
+    var more = $('consignMore');
+    clear(more);
+    if (rows.length > limit) {
+      var b = el('button', 'btn ghost', 'もっと見る（残り ' + (rows.length - limit) + ' 点）');
+      b.type = 'button';
+      b.onclick = onMore;
+      more.appendChild(b);
+    } else if (rows.length) {
+      more.appendChild(el('span', null, rows.length + '点ぜんぶ表示中'));
+    }
   }
+
+  // ---------- 固定費 / 経費 ----------
 
   function fixed(S, onEdit) {
     var box = $('fixedList');
     clear(box);
-    if (!S.lists.fixed.length) { box.appendChild(el('div', 'empty', 'まだ登録なし')); return; }
+    if (!S.lists.fixed.length) {
+      box.appendChild(el('div', 'empty', 'まだ登録なし（いまの固定費は ¥0）'));
+      return;
+    }
     var total = 0;
     S.lists.fixed.forEach(function (r) {
       total += r.amount;
-      var b = el('button', 'btn mini ghost', '編集');
+      var b = el('button', 'btn mini', '編集');
+      b.type = 'button';
       b.onclick = function () { onEdit(r); };
       box.appendChild(row(
         r.name,
-        (r.category || '-') + ' / ' + (r.payday || '支払日未設定') + (r.to ? ' / 〜' + r.to : ''),
-        [el('div', 'amount', yen(r.amount)), b]
+        (r.category || '-') + '／' + (r.payday || '支払日未設定') + (r.to ? '／〜' + dot(r.to) : ''),
+        [el('span', 'amt neg', '−' + yen(r.amount)), b]
       ));
     });
-    box.appendChild(el('div', 'yoy', '月額合計 ' + yen(total)));
+    box.appendChild(el('div', 'foot', '月額合計 ' + yen(total)));
   }
+
+  var EXPENSE_SHOWN = 150;   // 一覧に出す上限。全件数は見出しに出すので、打ち切ったことを必ず伝える
 
   function expense(S, onConfirm, onEdit) {
+    var m = S.thisMonth;
+    var rows = S.lists.expense;
+    $('expTotal').textContent = yen(sumTo(S.expense, m));
+    $('expCount').textContent = rows.length + '件';
+
     var box = $('expenseList');
     clear(box);
-    if (!S.lists.expense.length) { box.appendChild(el('div', 'empty', 'まだ登録なし')); return; }
-    S.lists.expense.slice(0, 150).forEach(function (r) {
-      var right = [el('div', 'amount', r.amount ? yen(r.amount) : '金額未入力')];
-      if (r.status === '要確認') right.push(el('span', 'tag hot', '要確認'));
+    if (!rows.length) { box.appendChild(el('div', 'empty', 'まだ登録なし')); return; }
+
+    rows.slice(0, EXPENSE_SHOWN).forEach(function (r) {
+      var buttons = el('div', 'rbtns');
       if (r.confirmed) {
-        right.push(el('span', 'tag', '確定'));
+        buttons.appendChild(el('span', 'tag q', '確定'));
       } else {
-        var b = el('button', 'btn mini', '確定する');
+        var hot = (r.status === '要確認');
+        var b = el('button', 'tag tapme' + (hot ? ' hot' : ''), hot ? '要確認' : '確定する');
+        b.type = 'button';
         b.onclick = function () { onConfirm(r, b); };
-        right.push(b);
+        buttons.appendChild(b);
       }
-      var ed = el('button', 'btn mini ghost', '編集');
+      var ed = el('button', 'btn mini', '編集');
+      ed.type = 'button';
       ed.onclick = function () { onEdit(r); };
-      right.push(ed);
+      buttons.appendChild(ed);
+
       box.appendChild(row(
         r.item || '(内訳なし)',
-        r.date + ' / ' + (r.vendor || '-') + ' / ' + (r.category || '-') + (r.source ? ' / ' + r.source : ''),
-        right
+        (r.vendor || '-') + '／' + (r.category || '-') + '・' + (r.method || '-') + '／' + dot(r.date) +
+          (r.source ? '／' + r.source : ''),
+        [el('span', 'amt neg', r.amount ? '−' + yen(r.amount) : '金額未入力'), buttons]
       ));
     });
+
+    if (rows.length > EXPENSE_SHOWN) {
+      box.appendChild(el('div', 'foot', '新しい ' + EXPENSE_SHOWN + '件だけ表示中（全 ' + rows.length +
+        '件。残りはスプレッドシートで見てね）'));
+    }
   }
 
+  // ---------- 通知 ----------
+
+  var toastTimer;
   function toast(msg, isErr) {
     var t = $('toast');
     t.textContent = msg;
     t.className = 'toast show' + (isErr ? ' err' : '');
-    setTimeout(function () { t.className = 'toast'; }, isErr ? 5200 : 2600);
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { t.className = 'toast'; }, isErr ? 5200 : 2200);
   }
 
   return {
-    hero: hero, chart: chart, breakdown: breakdown, stock: stock, pipeline: pipeline,
-    consign: consign, fixed: fixed, expense: expense, toast: toast, yen: yen
+    hero: hero, forecast: forecast, chart: chart, breakdown: breakdown,
+    stock: stock, pipeline: pipeline,
+    consignPlaces: consignPlaces, consignFilters: consignFilters, consign: consign,
+    fixed: fixed, expense: expense, toast: toast
   };
 })();

@@ -1,0 +1,212 @@
+/*
+ * skin.css — 「地」の層。紙・テクスチャ・テープ・ステッカー・プレート・数字まわり。
+ *
+ * デザインの芯（design/20260801_収入ダッシュボード_UIモック.html から移植）:
+ *   がちゃつき（紙・テープ・ステッカー・ハーフトーン）は地の層に閉じ込め、
+ *   数字は必ず不透明なベタ紙プレートの上に、インキ黒で置く。半透明の上に数字を置かない。
+ *   傾けるのはラベル・テープ・ステッカー・プレートの下敷きだけ。数字カード自体は水平を保つ。
+ *
+ * 色の置き場所:
+ *   「地」の色（paper / shade / topbar / dot）だけをここに書く。
+ *   JS より先に効かせないと初回描画が真っ白になるため、CSS 側が持つ唯一の色。
+ *   インキ・シリーズ色（ink / wine / lime / s1..s4 / neg）は js/config.js の PALETTE が唯一の出所で、
+ *   theme.js が :root へ流し込む。チャートも同じ PALETTE を読む。
+ */
+
+:root{
+  --paper:#EDE4D3;      /* 地：クラフト寄りの生成り */
+  --paper2:#FBF6EC;     /* プレート：明るい上質紙 */
+  --paper3:#E3D8C2;     /* 沈める紙 */
+  --shade:#191519;      /* ハード影（版ズレ） */
+  --topbar:#191519;
+  --dot1:rgba(25,21,25,.9);
+  --dot2:rgba(122,34,51,.9);
+  --onground:#191519;   /* 地の上に直に置く文字 */
+  --nav-h:66px;
+}
+html[data-theme="night"]{
+  --paper:#17151A;
+  --paper2:#F7F1E4;
+  --paper3:#DED3C0;
+  --shade:#7A2233;      /* 夜は版ズレをバーガンディで＝リソグラフの誤差 */
+  --topbar:#7A2233;
+  --dot1:rgba(251,246,236,.5);
+  --dot2:rgba(212,255,0,.3);
+  --onground:#F7F1E4;
+}
+
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{
+  background-color:var(--paper);
+  background-image:
+    radial-gradient(var(--dot1) .9px, transparent 1px),
+    radial-gradient(var(--dot2) .9px, transparent 1px);
+  background-size:9px 9px, 15px 15px;
+  background-position:0 0, 4px 6px;
+  color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;
+  font-size:15px;line-height:1.55;
+  font-variant-numeric:tabular-nums;
+  padding-bottom:calc(var(--nav-h) + env(safe-area-inset-bottom) + 14px);
+  overflow-x:hidden;
+}
+body::before{content:"";position:fixed;inset:0;background:var(--paper);opacity:.8;pointer-events:none;z-index:0}
+.grain{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:60;opacity:.05}
+#app,.nav,.topbar,#topwrap{position:relative;z-index:2}
+[hidden]{display:none !important}
+
+/* ---------- 紙プレート ---------- */
+.plate{
+  background:var(--paper2);border:2px solid var(--ink);border-radius:3px;
+  box-shadow:4px 4px 0 var(--shade);padding:14px 13px;margin-bottom:18px;position:relative;
+}
+.plate.sink{background:var(--paper3);box-shadow:3px 3px 0 var(--shade)}
+/* 数字プレートの「下敷き」だけを傾ける＝コラージュ感。数字自体は水平のまま */
+.plate.pad::before{
+  content:"";position:absolute;inset:6px -5px -7px 4px;background:var(--paper3);
+  border:2px solid var(--ink);transform:rotate(-1.1deg);z-index:-1;
+}
+.lbl{display:inline-block;background:var(--ink);color:var(--paper2);
+  font-size:11px;font-weight:800;letter-spacing:.12em;padding:3px 10px 4px;
+  transform:rotate(-1.4deg);margin-bottom:11px}
+.lbl.wine{background:var(--wine)}
+.lbl.tilt2{transform:rotate(1.2deg)}
+.lbl.big{font-size:14px;padding:5px 12px 6px}
+.lbl.nomb{margin-bottom:0}
+.lbl-sub{font-size:11px;color:var(--ink3);font-weight:700;margin-left:8px;letter-spacing:0}
+
+/* マスキングテープ：端をギザつかせ、影を落とす */
+.tape{position:absolute;width:78px;height:22px;top:-12px;left:16px;transform:rotate(-3.5deg);
+  pointer-events:none;background:rgba(212,255,0,.6);
+  filter:drop-shadow(0 1px 1px rgba(25,21,25,.28));
+  -webkit-clip-path:polygon(0 6%,7% 0,15% 8%,24% 1%,33% 9%,42% 2%,51% 10%,60% 2%,69% 9%,78% 1%,88% 8%,100% 3%,100% 95%,90% 100%,80% 92%,70% 99%,60% 91%,50% 98%,40% 90%,30% 99%,20% 91%,10% 98%,0 92%);
+  clip-path:polygon(0 6%,7% 0,15% 8%,24% 1%,33% 9%,42% 2%,51% 10%,60% 2%,69% 9%,78% 1%,88% 8%,100% 3%,100% 95%,90% 100%,80% 92%,70% 99%,60% 91%,50% 98%,40% 90%,30% 99%,20% 91%,10% 98%,0 92%)}
+.tape.r{left:auto;right:12px;transform:rotate(2.6deg);background:rgba(122,34,51,.45)}
+.tape.k{background:repeating-linear-gradient(45deg,rgba(25,21,25,.3) 0 4px,rgba(25,21,25,.1) 4px 8px)}
+.tape.b{top:auto;bottom:-12px;left:auto;right:34px;transform:rotate(-2deg);background:rgba(63,93,117,.4)}
+
+/* ステッカー：プレートの外へはみ出させる（内側に収めると"柄"になる） */
+.stick{position:absolute;pointer-events:none;z-index:3;
+  filter:drop-shadow(1.5px 2px 0 var(--ink)) drop-shadow(0 2px 3px rgba(25,21,25,.3))}
+.st-hero-r{width:62px;height:62px;right:-16px;top:-20px;fill:var(--wine);transform:rotate(13deg)}
+.st-hero-l{width:40px;height:40px;left:-9px;bottom:-17px;fill:var(--s1);transform:rotate(-16deg)}
+.st-brk{width:44px;height:44px;right:-17px;bottom:-16px;fill:var(--s2);transform:rotate(11deg)}
+.st-place{width:46px;height:46px;right:-18px;top:-18px;fill:var(--s3);transform:rotate(14deg)}
+.st-exp{width:40px;height:40px;left:-16px;bottom:-16px;fill:var(--ink2);transform:rotate(-12deg)}
+
+/* ---------- トップ ---------- */
+.topbar{background:var(--topbar);color:var(--paper2);padding:9px 14px 13px;position:relative;overflow:hidden}
+.topbar .ghost{position:absolute;left:-6px;top:-16px;font-size:60px;font-weight:900;
+  letter-spacing:-.04em;color:rgba(251,246,236,.08);white-space:nowrap;pointer-events:none}
+.topbar-in{max-width:640px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{display:flex;align-items:center;gap:8px;position:relative;min-width:0;overflow:hidden;flex:0 1 auto}
+/* りんごロゴはブランドのシグネチャー。ヘッダーが詰まっても絶対に潰させない */
+.brand svg{flex:0 0 22px;width:22px;height:22px;fill:var(--lime)}
+.brand b{font-size:13px;font-weight:900;letter-spacing:.16em;white-space:nowrap}
+/* 夜テーマの地はバーガンディなので、薄くしすぎると AA を割る（.55 で 3.86:1 だった） */
+.brand i{font-style:normal;font-size:10px;color:rgba(251,246,236,.82);letter-spacing:.08em;white-space:nowrap}
+.topright{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.torn{display:block;width:100%;height:9px;margin-top:-1px;color:var(--topbar)}
+
+main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
+
+/* ---------- HERO ---------- */
+.hero{position:relative;padding:0;background:var(--paper2);border:2px solid var(--ink);
+  border-radius:3px;box-shadow:5px 5px 0 var(--shade);margin-bottom:22px}
+.hero-deco{position:absolute;inset:0;overflow:hidden;pointer-events:none;border-radius:2px}
+.hero-deco .word{position:absolute;right:-20px;top:56px;font-size:58px;font-weight:900;
+  color:rgba(25,21,25,.05);letter-spacing:-.05em;transform:rotate(-4deg)}
+.halftone{position:absolute;left:-16px;bottom:-20px;width:150px;height:104px;opacity:.45}
+.hero-in{position:relative;padding:15px 14px 16px;z-index:2}
+.hero-cap{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.hero-cap em{font-style:normal;font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:.06em}
+.hero-num{font-size:clamp(30px,11.6vw,44px);font-weight:900;letter-spacing:-.035em;line-height:1.05;
+  margin:6px 0 2px;white-space:nowrap}
+.hero-num small{font-size:.46em;font-weight:900;margin-right:2px}
+.hero-num.neg{color:var(--wine)}
+.hero-rule{height:3px;background:var(--ink);width:62px;margin:9px 0 11px}
+.hero-sub{display:flex;gap:8px;flex-wrap:wrap}
+.chipnum{background:var(--paper3);border:2px solid var(--ink);padding:5px 9px;font-size:11px;font-weight:800;white-space:nowrap}
+.chipnum b{font-size:14px;font-weight:900;margin-left:5px;letter-spacing:-.01em}
+.chipnum.neg b{color:var(--wine)}
+
+/* ---------- KPI ---------- */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:18px}
+.kpi{padding:11px 10px 12px;margin:0}
+.kpi .k{font-size:10px;font-weight:900;letter-spacing:.09em;color:var(--ink2);display:block}
+.kpi .v{font-size:clamp(15px,5.4vw,22px);font-weight:900;letter-spacing:-.03em;display:block;
+  margin-top:4px;white-space:nowrap}
+.kpi .v small{font-size:.62em}
+.kpi .s{font-size:10px;color:var(--ink3);font-weight:700;display:block;margin-top:3px}
+/* ライムは「押せるもの」に限定。数字の強調は蛍光ペンの一本引きで面積を抑える。
+   数字の下を横切らせない＝ベースラインの下だけ通して「下線」として効かせる */
+.mark{background:linear-gradient(transparent 76%, var(--lime) 76%, var(--lime) 100%)}
+
+.foreline{background:var(--paper2);border:2px dashed var(--ink);padding:9px 11px;margin-bottom:18px}
+.foreline-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.foreline-t span{font-size:11px;font-weight:900;letter-spacing:.05em}
+.foreline-t b{font-size:clamp(15px,5vw,19px);font-weight:900;letter-spacing:-.02em;white-space:nowrap}
+.foreline small{display:block;font-size:10px;font-weight:700;color:var(--ink3);margin-top:4px}
+
+/* ---------- グラフ ---------- */
+.chartbox svg{display:block;width:100%}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:11px}
+.legend b{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:800;
+  border:1.5px solid var(--ink);padding:3px 7px;background:var(--paper2)}
+.legend i{width:9px;height:9px;display:inline-block;border:1px solid var(--ink)}
+
+.brk{margin-bottom:11px}
+.brk:last-child{margin-bottom:0}
+.brk-t{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:12px;font-weight:800;margin-bottom:4px}
+.brk-t b{font-size:14px;font-weight:900;letter-spacing:-.01em;white-space:nowrap}
+.brk-t em{font-style:normal;font-size:10px;color:var(--ink3);margin-left:6px;font-weight:700}
+.brk-bar{height:11px;background:var(--paper3);border:2px solid var(--ink)}
+.brk-bar i{display:block;height:100%;border-right:2px solid var(--ink)}
+.brk-sum{border-top:2px solid var(--ink);margin-top:12px;padding-top:11px;border-bottom:0}
+
+/* ---------- 行 ---------- */
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1.5px dashed rgba(25,21,25,.28)}
+.row:last-child{border-bottom:0;padding-bottom:2px}
+.row-m{min-width:0}
+.row-t{font-size:13px;font-weight:800;overflow-wrap:anywhere;line-height:1.35}
+.row-s{font-size:11px;color:var(--ink3);font-weight:700;margin-top:3px;overflow-wrap:anywhere}
+.row-r{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.row-r.h{flex-direction:row;align-items:center;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.amt{font-size:15px;font-weight:900;letter-spacing:-.02em;white-space:nowrap}
+.amt.neg{color:var(--wine)}
+.empty{font-size:12px;color:var(--ink2);font-weight:700;padding:12px 0;text-align:center;border:2px dashed rgba(25,21,25,.32)}
+.foot{font-size:11px;font-weight:800;color:var(--ink2);margin-top:11px}
+.bignum{font-size:clamp(24px,9vw,34px);font-weight:900;letter-spacing:-.03em;margin:2px 0 10px;white-space:nowrap}
+.footnote{font-size:10px;font-weight:700;color:var(--ink2);margin-top:12px;
+  border-top:2px dashed rgba(25,21,25,.3);padding-top:9px;line-height:1.6}
+.footnote .w{color:var(--wine)}
+.morebox{text-align:center;margin-top:12px}
+.morebox span{font-size:11px;font-weight:800;color:var(--ink2)}
+
+.tag{display:inline-block;font-size:10px;font-weight:900;padding:3px 8px;border:2px solid var(--ink);letter-spacing:.04em;white-space:nowrap}
+.tag.on{background:var(--s3l)}
+.tag.sold{background:var(--paper3);color:var(--ink2);border-color:var(--ink3)}
+.tag.hot{background:var(--wine);color:var(--paper2);border-color:var(--wine)}
+.tag.q{background:var(--paper2)}
+/* 押せるタグは指のサイズまで太らせる（表示専用タグとは別物） */
+.tag.tapme{display:inline-flex;align-items:center;justify-content:center;min-height:48px;min-width:92px;
+  font-size:12px;padding:6px 12px;cursor:pointer;box-shadow:2px 2px 0 var(--shade)}
+.tag.tapme:disabled{opacity:.55}
+
+.statgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.statgrid div{border:2px solid var(--ink);background:var(--paper3);padding:8px 4px;text-align:center}
+.statgrid span{display:block;font-size:10px;font-weight:900;color:var(--ink2);letter-spacing:.05em;overflow-wrap:anywhere}
+.statgrid b{display:block;font-size:clamp(17px,6vw,21px);font-weight:900;letter-spacing:-.03em;margin-top:1px}
+.statgrid div.pick{background:var(--s3l)}
+.statgrid div.pick span{color:var(--ink)}   /* 色地の上ではラベルもインキ黒に上げる */
+.statfoot{display:flex;justify-content:space-between;font-size:11px;font-weight:800;color:var(--ink2);
+  border-top:2px solid var(--ink);padding-top:8px;gap:6px}
+
+.sheetlink{display:flex;align-items:center;justify-content:center;color:var(--onground);
+  font-size:12px;font-weight:800;min-height:44px;padding:10px;text-decoration:underline;margin-bottom:6px}
+
+@media (max-width:359px){
+  .brand i{display:none} .brand b{font-size:12px;letter-spacing:.1em}
+}
+@media (min-width:560px){ main{padding:22px 18px 8px} }
