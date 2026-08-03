@@ -2,9 +2,14 @@
  * ui.css — 触る部品の層。フォーム・ボタン・ナビ・ボトムシート・トースト・合言葉ゲート。
  * 色は skin.css と js/config.js の PALETTE が出所。ここに生 hex は書かない。
  *
- * タップ領域の下限は 40px（押せるものは全部これを満たす）。
- * position:fixed を使ってよいのは .nav / .sheet / .sheetbg / .toast / .gate だけ。
- * 金額を覆う事故を構造的に断つため、本文に重なる fixed 要素は増やさない。
+ * タップ領域の下限は 44px（押せるものは全部これを満たす。
+ * チェックボックスだけは 22px の四角だが、的は 48px の .chk ラベル全体）。
+ *
+ * position:fixed を使ってよいのは、この2つの層に出てくる次のものだけ。増やさない。
+ *   ui.css   … .nav / .sheet / .sheetbg / .toast / .gate（操作。金額の上に重ねない）
+ *   skin.css … body::before / .grain（地の紙とざらつき。どちらも pointer-events:none の全面レイヤ）
+ * この一覧が実態と食い違うと「ここに書いてあるのが全部だ」と信じた次の人がガードを緩めるので、
+ * fixed を足す・消すときは必ずここも直す。
  */
 
 /* ---------- 合言葉ゲート ---------- */
@@ -79,7 +84,7 @@ textarea{min-height:64px;line-height:1.5}
 .rbtns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center}
 
 .chipbtn{background:var(--paper2);border:2px solid var(--ink);padding:10px 12px;font-size:11px;
-  font-weight:900;cursor:pointer;letter-spacing:.04em;box-shadow:2px 2px 0 var(--shade);min-height:42px;color:var(--ink)}
+  font-weight:900;cursor:pointer;letter-spacing:.04em;box-shadow:2px 2px 0 var(--shade);min-height:44px;color:var(--ink)}
 .chipbtn.on{background:var(--ink);color:var(--paper2)}
 .chiprow{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:12px}
 
@@ -141,13 +146,22 @@ textarea{min-height:64px;line-height:1.5}
 .toast.err{border-color:var(--wine);background:var(--wine)}
 
 /* ---------- トップバーの操作（年・月） ---------- */
-/* min-width は「1月」のような2文字でも指の幅を割らないため（狭い画面で 40px を切る） */
+/* min-width は「1月」のような2文字でも指の幅を割らないため（狭い画面で 40px を切る）。
+   高さはアプリ内の他の操作（44〜52px）に揃える。ここだけ 40px だと「押せるもの」に見えない。
+   右の余白は ▼（.selwrap::after）のぶん。appearance:none で消える印を自前で戻している
+   ＝ライムは「選択中」の合図で、「押せる」の合図は ▼ が持つ */
 .yearsel{background:var(--paper2);color:var(--ink);border:2px solid var(--paper2);border-radius:2px;
-  padding:9px 7px;font-size:12px;font-weight:900;font-family:inherit;min-height:40px;min-width:46px;
-  -webkit-appearance:none;appearance:none;width:auto;max-width:104px;box-shadow:none;cursor:pointer}
+  padding:10px 22px 10px 9px;font-size:12px;font-weight:900;font-family:inherit;min-height:44px;min-width:52px;
+  -webkit-appearance:none;appearance:none;width:auto;max-width:112px;box-shadow:none;cursor:pointer}
 /* 月は「いま見ている月」なのでライムを敷いて、押せることと選択中であることを同時に示す */
 #month{background:var(--lime);border-color:var(--lime)}
+/* 月は DASH にしか効かない。効かないタブで押せる見た目のまま残すと、
+   「押しても何も起きない → 後で別のタブが変わっている」という一番読み違える形になる。
+   薄くするのは .6 まで。バーガンディの地に重なるので、.45 まで落とすと合成後が 4.11:1 で AA を割る
+   （効かないタブでも「DASH がいま何月か」は読めていてほしい情報なので、読めなくはしない） */
+.yearsel:disabled{opacity:.6;cursor:default}
+.selwrap.off::after{opacity:.6}
 
 @media (max-width:359px){
-  .yearsel{padding:9px 5px;font-size:11px}
+  .yearsel{padding:10px 20px 10px 7px;font-size:11px}
 }

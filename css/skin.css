@@ -79,24 +79,37 @@ body::before{content:"";position:fixed;inset:0;background:var(--paper);opacity:.
 .tape.k{background:repeating-linear-gradient(45deg,rgba(25,21,25,.3) 0 4px,rgba(25,21,25,.1) 4px 8px)}
 .tape.b{top:auto;bottom:-12px;left:auto;right:34px;transform:rotate(-2deg);background:rgba(63,93,117,.4)}
 
-/* ステッカー：実際に売っているデザイン（img/*.webp）を、プレートの角へ貼り出す。
+/* ステッカー：実際に売っているデザイン（img 配下の透過WebP）を、プレートの上辺へ貼り出す。
    中身は透過画像なので drop-shadow がダイカットの輪郭に沿う＝「貼ってある」感が出る。
 
-   置き場所は全部「プレートの右上」に揃えてある。ここだけが唯一、どのプレートでも
-   確実に空いているため（左上は見出しラベル、下端は合計金額と操作ボタンが来る。
-   プレートの中身は全部が全幅のブロックなので、左右の余白 16px に逃がすこともできない）。
+   縦位置が上辺に限られるのは、そこだけがどのプレートでも確実に空いているため
+   （下端は合計金額と操作ボタンが来る。中身は全部が全幅のブロックなので左右にも逃がせない）。
+   ただし**横位置・大きさ・傾き・はみ出し量は必ずばらす**。5枚とも同じ角・同じ寸法・同じ角度で
+   貼ると「コラージュ」ではなく「ルール」に見え、飾りとして機能しない（2026-08-03 差し戻し）。
+   いまの散らばり（実測）: 高さ 44〜78px（1.8倍）／傾き −21〜+22°／上へのはみ出し 14〜40%／
+   横は右へ 9px 出るものから 23px 内側に寄るものまで（下の right の値は回転前の箱の位置）。
+   枚数は DASH 2・委託 1・固定費 1・経費 1（DASH に3枚あると1スクロールで同じ貼り方を3回見る）。
+
    数字と本文の矩形に1pxでも重ねない。重なりの有無は DevTools ではなく
    getBoundingClientRect の総当たりで確かめること（透過ぶんを含めて安全側で見る）。
 
-   はみ出しは右へ 10px 前後まで。画面の右端で切れると「貼った」ではなく「事故」に見えるので、
-   回転で膨らむぶんを含めて表示領域の内側に収める（body は overflow-x:hidden なので切れても気付けない）。 */
+   はみ出しは右へ 11px まで（main の左右余白が 13px）。画面の右端で切れると「貼った」ではなく
+   「事故」に見えるので、回転で膨らむぶんを含めて表示領域の内側に収める
+   （body は overflow-x:hidden なので切れても横スクロールでは気付けない）。
+   上へのはみ出しも 25px まで。各タブの先頭プレートは、それを超えるとトップバーの
+   年・月セレクタに被る（飾りが操作を覆う＝いちばんやってはいけない事故）。
+
+   暗い絵柄ほど地に沈むので、上へのはみ出し量で釣り合わせる。
+   不透明画素の平均輝度と暗い地(#17151A)のコントラスト比は
+   dino 10.68 / cone 10.50 / bag 9.69 / apple 9.06 に対し balloon だけ 4.63 なので、
+   balloon(.st-exp) は他より浅く（15%）しか出さない。 */
 .stick{position:absolute;pointer-events:none;z-index:3;width:auto;
   filter:drop-shadow(1.5px 2px 0 var(--ink)) drop-shadow(0 2px 3px rgba(25,21,25,.35))}
-.st-hero-r{height:68px;right:-6px;top:-30px;transform:rotate(11deg)}
-.st-brk{height:56px;right:-8px;top:-26px;transform:rotate(10deg)}
-.st-pipe{height:52px;right:-9px;top:-24px;transform:rotate(-9deg)}
-.st-place{height:58px;right:-6px;top:-26px;transform:rotate(13deg)}
-.st-exp{height:52px;right:-9px;top:-24px;transform:rotate(-11deg)}
+.st-hero{height:78px;right:-6px;top:-22px;transform:rotate(6deg)}
+.st-brk{height:50px;right:24px;top:-6px;transform:rotate(-21deg)}
+.st-place{height:44px;right:-6px;top:-19px;transform:rotate(14deg)}
+.st-fixed{height:72px;right:26px;top:-18px;transform:rotate(-9deg)}
+.st-exp{height:62px;right:10px;top:-8px;transform:rotate(22deg)}
 
 /* ---------- トップ ---------- */
 .topbar{background:var(--topbar);color:var(--paper2);padding:9px 14px 13px;position:relative;overflow:hidden}
@@ -107,9 +120,9 @@ body::before{content:"";position:fixed;inset:0;background:var(--paper);opacity:.
 /* りんごロゴはブランドのシグネチャー。ヘッダーが詰まっても絶対に潰させない */
 .brand svg{flex:0 0 22px;width:22px;height:22px;fill:var(--lime)}
 .brand b{font-size:13px;font-weight:900;letter-spacing:.16em;white-space:nowrap}
-/* 夜テーマの地はバーガンディなので、薄くしすぎると AA を割る（.55 で 3.86:1 だった） */
-.brand i{font-style:normal;font-size:10px;color:rgba(251,246,236,.82);letter-spacing:.08em;white-space:nowrap}
+/* 年はセレクタが持つので、ブランド側には出さない（同じ「2026」を1画面に2つ置かない） */
 .topright{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+.topright .selwrap{display:flex}
 .torn{display:block;width:100%;height:9px;margin-top:-1px;color:var(--topbar)}
 
 main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
@@ -122,7 +135,10 @@ main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
   color:rgba(25,21,25,.05);letter-spacing:-.05em;transform:rotate(-4deg)}
 .halftone{position:absolute;left:-16px;bottom:-20px;width:150px;height:104px;opacity:.45}
 .hero-in{position:relative;padding:15px 14px 16px;z-index:2}
-.hero-cap{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+/* 右端はステッカーの席として空けておく。空けないと、月を先に送って但し書きが伸びたときだけ
+   （例 2026.12・確定分だけ）キャプションがステッカーの下に潜り込む＝月切替でしか出ない重なりになる。
+   数値で逃げると絵柄を差し替えるたびに崩れるので、席そのものを確保しておく */
+.hero-cap{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-right:40px}
 .hero-cap em{font-style:normal;font-size:11px;font-weight:800;color:var(--ink2);letter-spacing:.06em}
 .hero-num{font-size:clamp(30px,11.6vw,44px);font-weight:900;letter-spacing:-.035em;line-height:1.05;
   margin:6px 0 2px;white-space:nowrap}
@@ -130,6 +146,13 @@ main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
 .hero-num.neg{color:var(--wine)}
 .hero-rule{height:3px;background:var(--ink);width:62px;margin:9px 0 11px}
 .hero-sub{display:flex;gap:8px;flex-wrap:wrap}
+/* 月送りは右上のセレクタが本体だが、そこは右手の親指から一番遠い角。
+   毎日見る hero 自体をスワイプできるようにしてあるので、指のある環境にだけ案内を出す */
+.swipe-hint{display:none}
+@media (hover:none){
+  .swipe-hint{display:block;font-size:10px;font-weight:800;color:var(--ink3);
+    letter-spacing:.04em;margin-top:10px}
+}
 .chipnum{background:var(--paper3);border:2px solid var(--ink);padding:5px 9px;font-size:11px;font-weight:800;white-space:nowrap}
 .chipnum b{font-size:14px;font-weight:900;margin-left:5px;letter-spacing:-.01em}
 .chipnum.neg b{color:var(--wine)}
@@ -219,6 +242,12 @@ main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
   font-size:12px;font-weight:800;min-height:44px;padding:10px;text-decoration:underline;margin-bottom:6px}
 
 @media (max-width:359px){
-  .brand i{display:none} .brand b{font-size:12px;letter-spacing:.1em}
+  .brand b{font-size:12px;letter-spacing:.1em}
+  /* 320px では見出しラベルと補足が1行に収まらず、括弧の途中で割れて2行目だけ宙に浮く
+     （.lbl が padding 付きの inline-block なので、後ろに続く inline がその高さに揃わない）。
+     最初から改行させて、補足はラベルの真下に置く。
+     width:fit-content は、ブロックにすると矩形だけが全幅に伸びてしまうため
+     （ステッカーの重なり判定は矩形で見るので、文字の無い余白まで「重なった」ことになる） */
+  .lbl-sub{display:block;width:fit-content;max-width:100%;margin-left:0;margin-top:-6px}
 }
 @media (min-width:560px){ main{padding:22px 18px 8px} }

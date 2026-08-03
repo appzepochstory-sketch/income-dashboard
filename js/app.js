@@ -88,7 +88,6 @@
     IncViews.fixed(S, editFixed);
     IncViews.expense(S, confirmExpense, editExpense);
 
-    $('brandYear').textContent = S.year;
     $('sheetLink').href = S.sheetUrl;
   }
 
@@ -165,14 +164,44 @@
     var sel = $('month');
     if (!sel.options.length) {
       for (var i = 0; i < 12; i++) sel.appendChild(new Option((i + 1) + '月', i));
-      sel.onchange = function () {
-        selMonth = parseInt(sel.value, 10);
-        renderMonth();
-        syncUrl();
-      };
+      sel.onchange = function () { pickMonth(parseInt(sel.value, 10)); };
     }
     sel.value = selMonth;
   }
+
+  /** 月を選び直す唯一の入口（セレクタもスワイプもここを通る）。範囲外は黙って捨てる。 */
+  function pickMonth(m) {
+    if (!S || !(m >= 0 && m <= 11) || m === selMonth) return;
+    selMonth = m;
+    $('month').value = m;
+    renderMonth();
+    syncUrl();
+  }
+
+  /**
+   * hero の左右スワイプで前月／翌月。月セレクタは画面の右上＝右手の親指から一番遠い角にあり、
+   * それが一番よく触る操作になってしまったので、毎日見る hero 自体を送り手にする。
+   * hero は DASH にしか無いので、他タブに漏れることはない。
+   */
+  (function () {
+    var x0 = 0, y0 = 0, live = false;
+    var hero = document.querySelector('.hero');
+    hero.addEventListener('touchstart', function (ev) {
+      live = (ev.touches.length === 1);
+      if (!live) return;
+      x0 = ev.touches[0].clientX;
+      y0 = ev.touches[0].clientY;
+    }, { passive: true });
+    hero.addEventListener('touchend', function (ev) {
+      if (!live) return;
+      live = false;
+      var t = ev.changedTouches[0];
+      var dx = t.clientX - x0, dy = t.clientY - y0;
+      // 縦スクロールの途中で月が飛ぶのが最悪なので、横が縦の1.5倍を超えたときだけ効かせる
+      if (Math.abs(dx) < 44 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      pickMonth(selMonth + (dx < 0 ? 1 : -1));
+    }, { passive: true });
+  })();
 
   // ---------- フォーム ----------
   /** タブ内の3つのフォームは1度だけ組み立てる（毎回作り直すと入力途中が消える）。 */
@@ -328,6 +357,12 @@
     document.querySelectorAll('.view').forEach(function (v) {
       v.hidden = (v.dataset.view !== name);
     });
+    // 月が効くのは DASH だけ。他タブでも押せるままにすると、押した瞬間は何も起きず
+    // 裏で DASH だけが書き換わる（＝次に DASH を開くと月が変わっている）という一番読み違える形になる。
+    // 年は全タブに効くのでそのまま。
+    var monthOn = (name === cfg.views[0]);
+    $('month').disabled = !monthOn;
+    $('monthWrap').classList.toggle('off', !monthOn);
     window.scrollTo(0, 0);
     drawChart();
   }
@@ -349,9 +384,13 @@
     if (S) openPicker();
   };
 
-  // 装飾のステッカーが読めなかったときは黙って消す（無くても画面は成立する）
+  // 装飾のステッカーが読めなかったときは黙って消す（無くても画面は成立する）。
+  // img は body の上の方にあり、この配線はファイル末尾で走るので、
+  // 読み込みに失敗した error はリスナが付く前に飛び終わっていることがある。
+  // 付け終わったあとに「もう落ちていたもの」を拾い直さないと、壊れた <img> が残る。
   document.querySelectorAll('img.stick').forEach(function (img) {
     img.addEventListener('error', function () { img.remove(); });
+    if (img.complete && !img.naturalWidth) img.remove();
   });
 
   // ナビの実寸を本文の下余白に反映（＋のぶんだけ高さが変わるため）

@@ -87,12 +87,14 @@
     <div class="topbar-in">
       <div class="brand">
         <svg viewBox="0 0 100 100" aria-hidden="true"><use href="#st-apple"/></svg>
-        <b>INCOME</b><i id="brandYear"></i>
+        <b>INCOME</b>
       </div>
-      <!-- 年と月は「いつを見ているか」の1組。年は全タブに効き、月は DASH の当月ぶんだけに効く -->
+      <!-- 年と月は「いつを見ているか」の1組。年は全タブに効き、月は DASH にしか効かない
+           （効かないタブでは app.js が月を disabled にする）。
+           ▼ は appearance:none で消えた「押せる」印を戻すためのもの -->
       <div class="topright">
-        <select class="yearsel" id="year" aria-label="年"></select>
-        <select class="yearsel" id="month" aria-label="月"></select>
+        <span class="selwrap"><select class="yearsel" id="year" aria-label="年"></select></span>
+        <span class="selwrap" id="monthWrap"><select class="yearsel" id="month" aria-label="月"></select></span>
       </div>
     </div>
   </header>
@@ -114,12 +116,14 @@
         </svg>
       </div>
       <div class="tape" aria-hidden="true"></div>
-      <img class="stick st-hero-r" src="img/apple-girl.webp" alt="" aria-hidden="true">
+      <img class="stick st-hero" src="img/apple-girl.webp" alt="" aria-hidden="true">
       <div class="hero-in">
         <div class="hero-cap"><span class="lbl nomb" id="heroLabel">今月の手残り</span><em id="heroYm"></em></div>
         <div class="hero-num" id="heroNum">—</div>
         <div class="hero-rule"></div>
         <div class="hero-sub" id="heroSub"></div>
+        <!-- 指で届く月送り。触れない環境では出さない（CSS の hover:none で出し分け） -->
+        <div class="swipe-hint" aria-hidden="true">← 横スワイプで前月／翌月 →</div>
       </div>
     </div>
 
@@ -143,7 +147,7 @@
     <div class="plate">
       <div class="lbl tilt2" id="breakdownLabel">今月の内訳</div>
       <div id="breakdown"></div>
-      <img class="stick st-brk" src="img/bag-boy.webp" alt="" aria-hidden="true">
+      <img class="stick st-brk" src="img/dino-boy.webp" alt="" aria-hidden="true">
     </div>
 
     <div class="plate">
@@ -155,7 +159,6 @@
 
     <div class="plate">
       <div class="tape b" aria-hidden="true"></div>
-      <img class="stick st-pipe" src="img/cone-boy.webp" alt="" aria-hidden="true">
       <div class="lbl">まだ納品してない案件</div>
       <div id="pipeline"></div>
     </div>
@@ -170,7 +173,7 @@
       <div class="lbl">あずけ先ごとの数</div>
       <div class="statgrid" id="placeStat"></div>
       <div class="statfoot" id="placeFoot"></div>
-      <img class="stick st-place" src="img/dino-boy.webp" alt="" aria-hidden="true">
+      <img class="stick st-place" src="img/cone-boy.webp" alt="" aria-hidden="true">
     </div>
     <div class="plate">
       <div class="lbl wine">あずけている商品</div><span class="lbl-sub">タップで販売中⇄売り切れ</span>
@@ -187,6 +190,7 @@
       <div class="tape" aria-hidden="true"></div>
       <div class="lbl">登録した固定費</div><span class="lbl-sub">手残りから毎月引かれる</span>
       <div id="fixedList"></div>
+      <img class="stick st-fixed" src="img/bag-boy.webp" alt="" aria-hidden="true">
     </div>
     <div class="plate" id="fixedFormBox"><div id="fixedForm"></div></div>
   </section>
@@ -194,7 +198,8 @@
   <!-- ================= 経費 ================= -->
   <section class="view" data-view="expense" hidden>
     <div class="plate">
-      <div class="tape r k" aria-hidden="true"></div>
+      <!-- テープは左固定。右に置くとステッカーと同じ角で重なる（飾りが2枚重なると「散らかった」に見える） -->
+      <div class="tape k" aria-hidden="true"></div>
       <div class="lbl wine">今年の経費</div><span class="lbl-sub" id="expCount"></span>
       <div class="bignum" id="expTotal">—</div>
       <div id="expenseList"></div>

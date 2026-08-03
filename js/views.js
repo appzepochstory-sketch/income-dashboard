@@ -154,8 +154,9 @@ window.IncViews = (function () {
     var box = $('chartbox');
     var latest = S.thisMonth;
     var last = Math.max(latest, m);
+    // 但し書きは短く保つ。長いと 320px で見出しの2行目が伸びる
     $('chartSub').textContent = '1〜' + (last + 1) + '月・積み上げ' +
-      (last > latest ? '（' + (latest + 2) + '月以降は確定分だけ）' : '');
+      (last > latest ? '（' + (latest + 2) + '月〜は確定分）' : '');
 
     var raw = box.getBoundingClientRect().width;
     // 計測不能（0付近）のときだけ既定値。下限で丸めると狭い画面で 1:1 が崩れる
@@ -176,6 +177,12 @@ window.IncViews = (function () {
     var pitch = plotW / (last + 1);
     var bw = Math.min(22, pitch * 0.44), cw = Math.min(9, pitch * 0.18);
     var ink = color('ink'), ink2 = color('ink2'), ink3 = color('ink3');
+    // 12ヶ月を 320px に並べると、2桁の月ラベルが 1.3px 間隔まで詰まって「101112」と読める。
+    // 幅が足りないときだけ文字と選択枠を落とす（375px は pitch 22.7 なので今までどおり）。
+    // 月ラベルが2段なのは、320px の pitch 18 では 10px でも 2桁が 3.9px 間隔まで寄るため。
+    var tight = pitch < 22;
+    var moFs = pitch < 20 ? 9 : tight ? 10 : 12;
+    var valFs = tight ? 9 : 11, pickW = tight ? 20 : 26;
 
     var s = '<svg viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H +
             '" role="img" aria-label="月次の収入内訳と経費の推移">';
@@ -207,16 +214,16 @@ window.IncViews = (function () {
       }
       if (acc > 0) {
         s += '<text x="' + gx.toFixed(1) + '" y="' + (y(acc) - 7).toFixed(1) +
-             '" text-anchor="middle" font-size="11" font-weight="900" fill="' + ink + '">' +
+             '" text-anchor="middle" font-size="' + valFs + '" font-weight="900" fill="' + ink + '">' +
              Math.round(acc / 10000) + '</text>';
       }
       // 選んでいる月をライムの枠で示す（月セレクタと一対一で対応させる）
       if (mo === m) {
-        s += '<rect x="' + (gx - 13).toFixed(1) + '" y="' + (H - PB + 11) + '" width="26" height="20" fill="' +
-             color('lime') + '" stroke="' + ink + '" stroke-width="2.4"/>';
+        s += '<rect x="' + (gx - pickW / 2).toFixed(1) + '" y="' + (H - PB + 11) + '" width="' + pickW +
+             '" height="20" fill="' + color('lime') + '" stroke="' + ink + '" stroke-width="2.4"/>';
       }
       s += '<text x="' + gx.toFixed(1) + '" y="' + (H - PB + 25) +
-           '" text-anchor="middle" font-size="12" font-weight="900" fill="' + ink + '">' + (mo + 1) + '</text>';
+           '" text-anchor="middle" font-size="' + moFs + '" font-weight="900" fill="' + ink + '">' + (mo + 1) + '</text>';
     }
     s += '<text x="' + (W - PR) + '" y="' + (H - 3) + '" text-anchor="end" font-size="11" font-weight="800" fill="' +
          ink3 + '">単位：万円／細い赤は経費＋固定費</text></svg>';
@@ -238,7 +245,10 @@ window.IncViews = (function () {
 
   function breakdown(S, m) {
     var total = S.incomeTotal[m];
-    $('breakdownLabel').textContent = (m + 1) + '月の内訳';
+    // 先の月に入っているのは確定済みのフリーランス収入だけ。hero と月次推移に合わせて
+    // ここにも但し書きを出す（出さないと、実績が揃った前年と割って成長率のように読めてしまう）
+    var future = isFuture(S, m);
+    $('breakdownLabel').textContent = (m + 1) + '月の内訳' + (future ? '・確定分だけ' : '');
 
     var box = $('breakdown');
     clear(box);
@@ -262,10 +272,13 @@ window.IncViews = (function () {
     });
 
     var prev = S.prevYearTotal[m];
-    // 長い注記を入れると金額と噛み合わずに行が崩れるので短く保つ
-    var sub = prev > 0
-      ? '前年同月 ' + yen(prev) + ' → ' + (total - prev >= 0 ? '+' : '') + Math.round((total - prev) / prev * 100) + '%'
-      : '前年比較はまだなし';
+    // 長い注記を入れると金額と噛み合わずに行が崩れるので短く保つ。
+    // 未来月は「確定分だけ ÷ 実績が揃った前年」なので、割合を出しても意味を持たない（桁違いの伸び率になる）
+    var sub = future
+      ? '確定分だけなので前年比較はしない'
+      : prev > 0
+        ? '前年同月 ' + yen(prev) + ' → ' + (total - prev >= 0 ? '+' : '') + Math.round((total - prev) / prev * 100) + '%'
+        : '前年比較はまだなし';
     box.appendChild(row((m + 1) + '月の収入', sub, [el('span', 'amt', yen(total))], 'row-r h'));
     box.lastChild.classList.add('brk-sum');
   }
