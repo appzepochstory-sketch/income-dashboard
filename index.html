@@ -128,8 +128,8 @@
     </div>
 
     <div class="grid2">
-      <div class="plate kpi"><span class="k">今年の総収入</span><span class="v" id="ytdIncome">—</span><span class="s" id="ytdIncomeNote"></span></div>
-      <div class="plate kpi pad"><span class="k">今年の手残り</span><span class="v"><span class="mark" id="ytdProfit">—</span></span><span class="s" id="ytdProfitNote"></span></div>
+      <div class="plate kpi"><span class="k" id="ytdIncomeLabel">今年の総収入</span><span class="v" id="ytdIncome">—</span><span class="s" id="ytdIncomeNote"></span></div>
+      <div class="plate kpi pad"><span class="k" id="ytdProfitLabel">今年の手残り</span><span class="v"><span class="mark" id="ytdProfit">—</span></span><span class="s" id="ytdProfitNote"></span></div>
     </div>
 
     <div class="foreline">
@@ -200,7 +200,7 @@
     <div class="plate">
       <!-- テープは左固定。右に置くとステッカーと同じ角で重なる（飾りが2枚重なると「散らかった」に見える） -->
       <div class="tape k" aria-hidden="true"></div>
-      <div class="lbl wine">今年の経費</div><span class="lbl-sub" id="expCount"></span>
+      <div class="lbl wine" id="expLabel">今年の経費</div><span class="lbl-sub" id="expCount"></span>
       <div class="bignum" id="expTotal">—</div>
       <div id="expenseList"></div>
       <div class="footnote">

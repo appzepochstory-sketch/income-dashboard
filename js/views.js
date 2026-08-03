@@ -97,6 +97,15 @@ window.IncViews = (function () {
   function isFutureYear(S) { return isFuture(S, 0); }
 
   /**
+   * 見ている年の呼び方。年セレクタで前後の年も開けるので、「今年の」と書けるのは当年だけ。
+   * 2027年を開いたまま「今年の手残り」と出ていると、選んでいる年について嘘をつく。
+   * 当年のときの文言は変えない（毎日見るのはそこなので、日常の見え方を動かさない）。
+   */
+  function yearWord(S) {
+    return S.year === new Date().getFullYear() ? '今年の' : S.year + '年の';
+  }
+
+  /**
    * 上段。m は画面で選んでいる月で、下段の「今年の…」は m に連動させない。
    * 連動させると「今年の総収入」が過去月を選ぶたびに減り、年の数字の意味が壊れる。
    */
@@ -121,6 +130,9 @@ window.IncViews = (function () {
       chip('経費', S.expense[m], true),
       chip('固定費', S.fixed[m], true)
     ]);
+
+    $('ytdIncomeLabel').textContent = yearWord(S) + '総収入';
+    $('ytdProfitLabel').textContent = yearWord(S) + '手残り';
 
     var ytdIncome = $('ytdIncome');
     clear(ytdIncome);
@@ -441,6 +453,7 @@ window.IncViews = (function () {
   function expense(S, onConfirm, onEdit) {
     var m = S.thisMonth;
     var rows = S.lists.expense;
+    $('expLabel').textContent = yearWord(S) + '経費';
     $('expTotal').textContent = yen(sumTo(S.expense, m));
     $('expCount').textContent = rows.length + '件';
 
