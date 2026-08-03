@@ -89,6 +89,14 @@ window.IncViews = (function () {
   }
 
   /**
+   * 選んだ年がまるごと先＝1ヶ月も実績が無い年かどうか。
+   * サーバは当年以外に `thisMonth: 11` を返す（`Api.gs`）ので、`thisMonth` だけを見ると
+   * 過去年と未来年が同じ顔になり、**未来年の確定分を「実績」と書いてしまう**。
+   * 年をまたぐ判定はここに集約して、`thisMonth` 基準の分岐と混ぜない。
+   */
+  function isFutureYear(S) { return isFuture(S, 0); }
+
+  /**
    * 上段。m は画面で選んでいる月で、下段の「今年の…」は m に連動させない。
    * 連動させると「今年の総収入」が過去月を選ぶたびに減り、年の数字の意味が壊れる。
    */
@@ -117,7 +125,8 @@ window.IncViews = (function () {
     var ytdIncome = $('ytdIncome');
     clear(ytdIncome);
     ytdIncome.appendChild(bigYen(sumTo(S.incomeTotal, latest)));
-    $('ytdIncomeNote').textContent = '1〜' + (latest + 1) + '月の実績';
+    // 来年を選ぶと latest は 12月になるが、中身は確定分だけ。ここで「実績」と書くと嘘になる
+    $('ytdIncomeNote').textContent = '1〜' + (latest + 1) + '月の' + (isFutureYear(S) ? '確定分' : '実績');
 
     var ytdProfit = $('ytdProfit');
     clear(ytdProfit);
@@ -138,9 +147,12 @@ window.IncViews = (function () {
     var confirmed = landing - sumTo(S.incomeTotal, m);
     var remain = 11 - m;
     $('forecast').textContent = yen(landing);
-    $('forecastNote').textContent = remain > 0
-      ? '1〜' + (m + 1) + '月の実績 ＋ 残り' + remain + 'ヶ月の確定分 ' + yen(confirmed) + '（物販とイラスト案件は受注前なので0で計算）'
-      : '12ヶ月ぶんの実績（残り月なし）';
+    // 来年は実績が1ヶ月も無い。remain だけで見ると「12ヶ月ぶんの実績」になってしまう
+    $('forecastNote').textContent = isFutureYear(S)
+      ? '12ヶ月ぶんの確定分（実績はまだ1ヶ月も無い）'
+      : remain > 0
+        ? '1〜' + (m + 1) + '月の実績 ＋ 残り' + remain + 'ヶ月の確定分 ' + yen(confirmed) + '（物販とイラスト案件は受注前なので0で計算）'
+        : '12ヶ月ぶんの実績（残り月なし）';
   }
 
   /**
@@ -154,9 +166,11 @@ window.IncViews = (function () {
     var box = $('chartbox');
     var latest = S.thisMonth;
     var last = Math.max(latest, m);
-    // 但し書きは短く保つ。長いと 320px で見出しの2行目が伸びる
+    // 但し書きは短く保つ。長いと 320px で見出しの2行目が伸びる。
+    // 来年は latest が 12月まで来てしまうので、last と latest の比較だけでは但し書きが消える
     $('chartSub').textContent = '1〜' + (last + 1) + '月・積み上げ' +
-      (last > latest ? '（' + (latest + 2) + '月〜は確定分）' : '');
+      (isFutureYear(S) ? '（ぜんぶ確定分）'
+        : last > latest ? '（' + (latest + 2) + '月〜は確定分）' : '');
 
     var raw = box.getBoundingClientRect().width;
     // 計測不能（0付近）のときだけ既定値。下限で丸めると狭い画面で 1:1 が崩れる
