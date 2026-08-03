@@ -100,9 +100,9 @@ body::before{content:"";position:fixed;inset:0;background:var(--paper);opacity:.
    年・月セレクタに被る（飾りが操作を覆う＝いちばんやってはいけない事故）。
 
    暗い絵柄ほど地に沈むので、上へのはみ出し量で釣り合わせる。
-   不透明画素の平均輝度と暗い地(#17151A)のコントラスト比は
-   dino 10.68 / cone 10.50 / bag 9.69 / apple 9.06 に対し balloon だけ 4.63 なので、
-   balloon(.st-exp) は他より浅く（15%）しか出さない。 */
+   不透明画素（alpha>128）の平均色と暗い地(#17151A)のコントラスト比を測ると
+   dino 9.75 / cone 9.54 / bag 8.83 / apple 7.86 に対し balloon だけ 3.97 で、他の半分以下。
+   同じだけ地に出すと経費タブの上半分が沈むので、balloon(.st-exp) は 15% しか出さない。 */
 .stick{position:absolute;pointer-events:none;z-index:3;width:auto;
   filter:drop-shadow(1.5px 2px 0 var(--ink)) drop-shadow(0 2px 3px rgba(25,21,25,.35))}
 .st-hero{height:78px;right:-6px;top:-22px;transform:rotate(6deg)}
