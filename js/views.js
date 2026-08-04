@@ -465,6 +465,13 @@ window.IncViews = (function () {
     }
 
     var view = rows.filter(function (r) { return r.m >= from; });
+
+    // 行はあるが、これから先の月だけが空。契約が終わって先の月を消すとこうなる（削除の主な用途がこれ）。
+    // 何も言わずに畳むと、消したのか壊れたのか読めない板になるので、先が空だと明かしておく。
+    if (!view.length) {
+      box.appendChild(el('div', 'empty', (from + 1) + '月から先の報酬は登録なし'));
+    }
+
     var curM = -1;
     view.forEach(function (r) {
       if (r.m !== curM) {
