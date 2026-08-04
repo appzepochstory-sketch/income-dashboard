@@ -9,6 +9,8 @@
  *   fixed  : name=項目 / amount=金額 / payday=支払日 / category=カテゴリ / from=開始月 / to=終了月 / note=メモ
  *   expense: date=日付 / item=内訳 / vendor=取引先 / amount=金額 / category=カテゴリ / method=支払方法
  *            ／ confirmed=確定フラグ（経費タブに「メモ」列は無い）
+ *   freelance: month=発生月 / client=取引先 / kind=区分 / amount=金額 / paid=入金日 / note=備考
+ *            ／ 年は送信時に app.js が足す（withYear。トップバーで選んでいる年が発生月の年になる）
  *
  * 項目の引き当てに form.elements[name] は使わない。'item' のように
  * HTMLFormControlsCollection のメソッド名と衝突する名前があり、入力欄ではなく関数が返るため。
@@ -18,6 +20,15 @@ window.IncForms = (function () {
 
   var NEW_VALUE = '__new';
   var NEW_SUFFIX = NEW_VALUE;   // 自由入力欄の name は「元の name + この接尾辞」。同じ文字列に依存しているので束ねる
+
+  // 削除は2段階。1タップ目でここに変わり、押さずにいると DEL_CALM_MS で戻る。
+  var DEL_LABEL = '削除';
+  var DEL_CONFIRM = 'ほんとに消す？';
+  var DEL_CALM_MS = 5000;
+
+  // 発生月の選択肢。値は '1'〜'12' で、年はトップバーの年セレクタが持つ（withYear）。
+  var MONTHS = [];
+  for (var mi = 1; mi <= 12; mi++) MONTHS.push({ v: String(mi), l: mi + '月' });
 
   /**
    * 選択肢の opts は API の bootstrap.options のキー。
@@ -79,12 +90,33 @@ window.IncForms = (function () {
         { n: 'note', l: 'メモ', t: 'area' }
       ]
     },
+    /**
+     * 報酬（フリーランス収入）。契約が変わったら金額を直す場所。
+     * 発生月は月だけ選ぶ。年はトップバーで選んでいる年をそのまま使う（withYear）ので、
+     * 一覧に出ている年と保存先の年が食い違うことがない。
+     */
+    freelance: {
+      title: '報酬を追加', editTitle: '報酬を編集', sub: '', btn: '保存する',
+      action: 'saveFreelance', okMsg: '報酬を保存したよ',
+      editable: true, delAction: 'deleteFreelance', withYear: true,
+      hidden: ['row', 'expected'],
+      fields: [
+        { n: 'month', l: '発生月', t: 'select', req: true, list: MONTHS, hint: '年はトップバーで選んでいる年になるよ' },
+        { n: 'client', l: '取引先', t: 'select', req: true, opts: 'freelanceClients', add: '取引先の名前' },
+        { n: 'kind', l: '区分', t: 'select', req: true, opts: 'freelanceKinds', add: '区分の名前' },
+        { n: 'amount', l: '金額（月額）', t: 'yen', req: true },
+        { n: 'paid', l: '入金日', t: 'date', hint: '空欄＝まだ入金されてない' },
+        { n: 'note', l: '備考', t: 'text' }
+      ]
+    },
     expense: {
       title: '経費を手で足す', editTitle: '経費を編集', sub: '', btn: '保存する',
       action: 'saveExpense', okMsg: '経費を保存したよ', editable: true,
       hidden: ['row', 'expected', 'ref', 'source', 'status'],
       fields: [
-        { n: 'date', l: '日付', t: 'date', req: true, today: true },
+        // maxToday を外さないこと。先の日付で入れると、見出しの合計（1〜今月）からは外れるのに
+        // 一覧と件数には出るので、見出しと行が合わない画面になる。
+        { n: 'date', l: '日付', t: 'date', req: true, today: true, maxToday: true },
         { n: 'item', l: '内訳', t: 'text', ph: 'ステッカー印刷' },
         { n: 'vendor', l: '取引先', t: 'text', ph: 'OHPRINT.ME' },
         { n: 'amount', l: '金額', t: 'yen' },
@@ -133,13 +165,18 @@ window.IncForms = (function () {
     input.value = val;
   }
 
-  /** select の中身を入れ替える。いま選ばれている値は消さない（再描画で入力が飛ばないように）。 */
+  /**
+   * select の中身を入れ替える。いま選ばれている値は消さない（再描画で入力が飛ばないように）。
+   * 見せ方と送る値が違う選択肢（発生月＝「9月」と見せて 9 を送る）は {v, l} の形で渡す。
+   */
   function fillSelect(sel, values, addLabel) {
     var keep = sel.value;
     while (sel.firstChild) sel.removeChild(sel.firstChild);
     // 空ラベルだと「未入力」なのか「壊れている」のか見分けがつかないので文言を入れる
     sel.appendChild(new Option('選んでね', ''));
-    (values || []).forEach(function (v) { sel.appendChild(new Option(v, v)); });
+    (values || []).forEach(function (v) {
+      sel.appendChild(v && v.v != null ? new Option(v.l, v.v) : new Option(v, v));
+    });
     if (addLabel) sel.appendChild(new Option('＋ 新しく追加する…', NEW_VALUE));
     if (keep) setValue(sel, keep);   // 選択肢が縮んでも、選んでいた値を '' に落とさない
   }
@@ -162,6 +199,8 @@ window.IncForms = (function () {
       d.type = 'date';
       d.name = f.n;
       if (f.today) d.value = today();
+      // 先の日付を入れさせない欄。ピッカー側で先が押せなくなるので、打ち間違いがそもそも起きない
+      if (f.maxToday) d.max = today();
       dw.appendChild(d);
       return { wrap: dw, control: d };
     }
@@ -196,6 +235,41 @@ window.IncForms = (function () {
       if (f.datalist) input.setAttribute('list', f.datalist);
     }
     return { wrap: input, control: input };
+  }
+
+  /**
+   * 削除ボタン。押した瞬間には消えず、1タップ目で文言が変わるだけ（2タップ目で app.js が消す）。
+   * 「消える一歩手前」を画面に出すのが目的なので、状態は必ず data-armed と文言の両方で示す。
+   */
+  function delButton() {
+    var b = el('button', 'btn ghost mini del');
+    b.type = 'button';
+    b.dataset.del = '1';
+    b.hidden = true;
+    b.textContent = DEL_LABEL;
+    return b;
+  }
+
+  var delTimer;
+
+  /** 削除ボタンを「押していない状態」に戻す。show=false なら隠す（＝新規入力のとき）。 */
+  function calmDelete(form, show) {
+    var b = form.querySelector('[data-del]');
+    if (!b) return;
+    clearTimeout(delTimer);
+    b.hidden = !show;
+    b.textContent = DEL_LABEL;
+    b.classList.remove('armed');
+    delete b.dataset.armed;
+  }
+
+  /** 1タップ目。放っておけば戻るので、押しっぱなしの「消える状態」が残らない。 */
+  function armDelete(btn) {
+    btn.dataset.armed = '1';
+    btn.classList.add('armed');
+    btn.textContent = DEL_CONFIRM;
+    clearTimeout(delTimer);
+    delTimer = setTimeout(function () { calmDelete(btn.closest('form'), true); }, DEL_CALM_MS);
   }
 
   function buildField(f, options) {
@@ -293,6 +367,8 @@ window.IncForms = (function () {
       actions.appendChild(submit);
       actions.appendChild(cancel);
       form.appendChild(actions);
+      // 削除は編集に入ってからしか出さない。一覧に置くと、隣の「編集」を狙った指が消してしまう。
+      if (D.delAction) form.appendChild(delButton());
     } else {
       form.appendChild(submit);
     }
@@ -385,6 +461,7 @@ window.IncForms = (function () {
     form.reset();
     form.querySelectorAll('input[type=hidden]').forEach(function (h) { h.value = ''; });
     form.querySelectorAll('.newin').forEach(function (n) { n.value = ''; n.hidden = true; });
+    calmDelete(form, false);        // 新規入力に消すものは無い
     // 日付の初期値（今日）も reset() では戻らないので入れ直す
     D.fields.forEach(function (f) {
       if (f.t !== 'date' || !f.today) return;
@@ -407,6 +484,7 @@ window.IncForms = (function () {
       if (f.t === 'check') { input.checked = !!record[f.n]; return; }
       setValue(input, record[f.n]);
     });
+    calmDelete(form, true);         // 掴んだ行があるときだけ消せる
     setTitle(form, D.editTitle + (record.name ? '（' + record.name + '）' : ''));
   }
 
@@ -423,6 +501,7 @@ window.IncForms = (function () {
     values: values,
     missing: missing,
     reset: reset,
-    fill: fill
+    fill: fill,
+    armDelete: armDelete
   };
 })();

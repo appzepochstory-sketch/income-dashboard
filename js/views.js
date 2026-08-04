@@ -424,7 +424,83 @@ window.IncViews = (function () {
     }
   }
 
-  // ---------- 固定費 / 経費 ----------
+  // ---------- 報酬 / 固定費 / 経費 ----------
+
+  /** その月の報酬の合計。畳んでいる月の見出しにも出すので、view ではなく全件から数える。 */
+  function monthTotal(rows, m) {
+    return rows.reduce(function (t, r) { return r.m === m ? t + r.amount : t; }, 0);
+  }
+
+  /**
+   * 月の見出し。「実績 / 確定分」の呼び分けは DASH（hero・月次推移・年末までの着地）と同じ境目
+   * （isFuture）に揃えてある。ここだけ「見込み」などと別の言葉にすると、
+   * 同じ数字が画面ごとに違う名前で出てしまう。
+   */
+  function monthHead(S, m, total) {
+    var ahead = isFuture(S, m);
+    var h = el('div', 'mhead');
+    h.appendChild(el('b', null, (m + 1) + '月'));
+    h.appendChild(el('span', 'tag ' + (ahead ? 'sold' : 'q'), ahead ? '確定分' : '実績'));
+    h.appendChild(el('span', 'amt', yen(total)));
+    return h;
+  }
+
+  /**
+   * 報酬（フリーランス収入）の一覧。契約が変わったら金額を直す場所なので月ごとにまとめる。
+   * 既定で開いて見えるのは from 月から先＝これから変わりうる月だけ。
+   * 過ぎた月も編集できるが、直す機会が少ないので onMore の後ろに畳んである。
+   */
+  function freelance(S, from, onEdit, onMore) {
+    // API が報酬を返す前の版でも画面ごと落とさない（描画は1本の render で連なっているので、
+    // ここで例外を出すと DASH まで真っ白になる）。デプロイの前後が入れ替わっても耐える。
+    var rows = S.lists.freelance || [];
+    var box = $('freelanceList');
+    var more = $('freelanceMore');
+    clear(box);
+    clear(more);
+
+    if (!rows.length) {
+      box.appendChild(el('div', 'empty', S.year + '年の報酬はまだ登録なし'));
+      return;
+    }
+
+    var view = rows.filter(function (r) { return r.m >= from; });
+    var curM = -1;
+    view.forEach(function (r) {
+      if (r.m !== curM) {
+        curM = r.m;
+        box.appendChild(monthHead(S, curM, monthTotal(rows, curM)));
+      }
+      var b = el('button', 'btn mini', '編集');
+      b.type = 'button';
+      b.onclick = function () { onEdit(r); };
+      // 備考は表示だけ短くする。record 側は元のまま（切った文字列で編集すると尻尾が消える）
+      var note = String(r.note || '').replace(/\n/g, ' ').slice(0, 40);
+      box.appendChild(actionRow(
+        r.kind,
+        meta([r.client, r.paid ? '入金 ' + dot(r.paid) : '', note], '／'),
+        [el('span', 'amt', yen(r.amount)), b]
+      ));
+    });
+
+    // 合計は畳んだ月も含めた年ぶん。開いている月だけ足すと、年の姿が畳み方で変わってしまう
+    var done = 0, ahead = 0;
+    rows.forEach(function (r) {
+      if (isFuture(S, r.m)) ahead += r.amount; else done += r.amount;
+    });
+    var parts = [];
+    if (done) parts.push('実績 ' + yen(done));
+    if (ahead) parts.push('確定分 ' + yen(ahead));
+    box.appendChild(el('div', 'foot', S.year + '年ぶん ' + yen(done + ahead) + '（' + parts.join(' ／ ') + '）'));
+
+    var hidden = rows.length - view.length;
+    if (hidden > 0) {
+      var mb = el('button', 'btn ghost', '1〜' + from + '月も出す（' + hidden + '件）');
+      mb.type = 'button';
+      mb.onclick = onMore;
+      more.appendChild(mb);
+    }
+  }
 
   function fixed(S, onEdit) {
     var box = $('fixedList');
@@ -451,10 +527,12 @@ window.IncViews = (function () {
   var EXPENSE_SHOWN = 150;   // 一覧に出す上限。全件数は見出しに出すので、打ち切ったことを必ず伝える
 
   function expense(S, onConfirm, onEdit) {
-    var m = S.thisMonth;
     var rows = S.lists.expense;
     $('expLabel').textContent = yearWord(S) + '経費';
-    $('expTotal').textContent = yen(sumTo(S.expense, m));
+    // 12ヶ月ぶん。1〜今月に絞ると、先の日付の行が一覧には出るのに合計に入らず、見出しと行が合わなくなる。
+    // 先の日付は入力側でも塞いである（forms.js の maxToday）が、シートやメール取込からは入りうる。
+    // 先の行が無い普段は sumTo(S.expense, thisMonth) と1円も変わらない。
+    $('expTotal').textContent = yen(sum(S.expense));
     $('expCount').textContent = rows.length + '件';
 
     var box = $('expenseList');
@@ -505,6 +583,6 @@ window.IncViews = (function () {
     hero: hero, forecast: forecast, chart: chart, breakdown: breakdown,
     stock: stock, pipeline: pipeline,
     consignPlaces: consignPlaces, consignFilters: consignFilters, consign: consign,
-    fixed: fixed, expense: expense, toast: toast
+    freelance: freelance, fixed: fixed, expense: expense, toast: toast
   };
 })();

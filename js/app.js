@@ -15,6 +15,7 @@
   var urlMonth = null;              // ?m= で開かれたときの初回だけの指定
   var consignFilter = 'all';
   var consignLimit = 8;
+  var freelanceAll = false;         // 報酬で過ぎた月も出すか（既定は「これから」だけ）
   var formsReady = false;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -60,6 +61,7 @@
     // 年が変わったら、その年の「いちばん新しい月」に合わせ直す（前年を開いたら12月）。
     // 同じ年の読み直し（保存のあと）では、見ていた月を動かさない。
     var sameYear = S && S.year === data.year;
+    if (!sameYear) freelanceAll = false;   // 年を変えたら報酬の畳み方も初期状態に戻す
     S = data;
     if (urlMonth != null) { selMonth = urlMonth; urlMonth = null; }
     else if (selMonth == null || !sameYear) selMonth = S.thisMonth;
@@ -85,6 +87,7 @@
     IncViews.pipeline(S);
     IncViews.consignPlaces(S);
     renderConsign();
+    renderFreelance();
     IncViews.fixed(S, editFixed);
     IncViews.expense(S, confirmExpense, editExpense);
 
@@ -217,7 +220,8 @@
   function ensureForms() {
     if (formsReady) return;
     formsReady = true;
-    [['consignForm', 'consign'], ['fixedForm', 'fixed'], ['expenseForm', 'expense']].forEach(function (p) {
+    [['consignForm', 'consign'], ['freelanceForm', 'freelance'],
+     ['fixedForm', 'fixed'], ['expenseForm', 'expense']].forEach(function (p) {
       $(p[0]).appendChild(IncForms.build(p[1], S.options));
     });
     IncForms.wire(document);
@@ -255,9 +259,13 @@
       gap.input.focus();
       return;
     }
+    var payload = IncForms.values(form);
+    // 発生月は「トップバーで選んでいる年 × フォームで選んだ月」。年は画面の状態なのでここで足す
+    // （フォーム側に年の欄を作ると、一覧に出ている年と保存先の年が食い違いうる）。
+    if (def.withYear) payload.year = S.year;
     var btn = form.querySelector('button[type=submit]');
     btn.disabled = true;
-    IncApi.call(def.action, IncForms.values(form)).then(function () {
+    IncApi.call(def.action, payload).then(function () {
       IncViews.toast(def.okMsg);
       IncForms.reset(form);           // hidden の row / expected もここで必ず空になる
       btn.disabled = false;
@@ -273,6 +281,32 @@
     var btn = ev.target.closest('[data-reset]');
     if (!btn) return;
     IncForms.reset(btn.closest('form'));
+  });
+
+  /**
+   * 削除。1タップ目は文言が変わるだけで、消えるのは2タップ目。
+   * 送るのは行番号だけでなく、編集に入ったときに掴んだ指紋（expected）も。
+   * 行番号だけで消すと、シート側で行が減っていたときに1つ下の別の月を消す。
+   */
+  document.addEventListener('click', function (ev) {
+    var btn = ev.target.closest('[data-del]');
+    if (!btn) return;
+    if (!btn.dataset.armed) { IncForms.armDelete(btn); return; }
+    var form = btn.closest('form');
+    var vals = IncForms.values(form);
+    if (!vals.row) { IncViews.toast('消す行がわからないよ。読み込み直してね。', true); return; }
+    btn.disabled = true;
+    IncApi.call(IncForms.defs[form.dataset.form].delAction, { row: vals.row, expected: vals.expected })
+      .then(function () {
+        IncViews.toast('消したよ');
+        IncForms.reset(form);
+        btn.disabled = false;
+        reloadAfterWrite();
+      })
+      .catch(function (e) {
+        btn.disabled = false;
+        IncViews.toast(e.message, true);
+      });
   });
 
   // ---------- 追加シート（ナビ中央の＋） ----------
@@ -334,10 +368,25 @@
       .catch(function (e) { btn.disabled = false; IncViews.toast(e.message, true); });
   }
 
+  // ---------- 報酬 ----------
+  /**
+   * 既定で開いて見せるのは「これから変わりうる月」だけ＝当年なら今月から先。
+   * 当年以外は今月という概念が無い（サーバは当年以外に thisMonth:11 を返す）ので、
+   * それをそのまま使うと12月だけになる。年ごと畳まないのが正しい。
+   */
+  function renderFreelance() {
+    var from = (!freelanceAll && S.year === new Date().getFullYear()) ? S.thisMonth : 0;
+    IncViews.freelance(S, from, editFreelance, function () {
+      freelanceAll = true;
+      renderFreelance();
+    });
+  }
+
   // ---------- 固定費 / 経費 ----------
   // 固定費・経費のタブにはID列が無いので、行番号だけを送ると
   // シート側で行を消したあとに開きっぱなしのタブから保存したとき、別の行を潰してしまう。
   // そこでサーバが各行に付けてくる指紋（r.print）をそのまま送り返し、同じ行かを確かめてもらう。
+  function editFreelance(r) { startEdit('freelance', 'freelanceFormBox', r); }
   function editFixed(r) { startEdit('fixed', 'fixedFormBox', r); }
   function editExpense(r) { startEdit('expense', 'expenseFormBox', r); }
 

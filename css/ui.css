@@ -79,6 +79,11 @@ textarea{min-height:64px;line-height:1.5}
 .btn.mini{width:auto;padding:9px 13px;font-size:12px;min-height:44px;box-shadow:2px 2px 0 var(--shade);
   background:var(--paper2);color:var(--ink)}
 .row2{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:start}
+/* 報酬の削除。ふだんは目立たせない（消すための画面ではない）。
+   1タップ目で armed が付いて赤くなる＝「次に押したら消える」を色でも出す（文言は forms.js） */
+.btn.del{margin-top:10px}
+.btn.del.armed{background:var(--wine);color:var(--paper2);border-color:var(--wine);
+  box-shadow:2px 2px 0 var(--ink)}
 
 /* 行の右側に操作が2つ並ぶとき（経費の 確定/要確認 ＋ 編集）。狭い画面では折り返す */
 .rbtns{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;align-items:center}

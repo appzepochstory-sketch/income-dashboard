@@ -184,11 +184,22 @@
     <div class="plate" id="consignFormBox"><div class="tape r" aria-hidden="true"></div><div id="consignForm"></div></div>
   </section>
 
-  <!-- ================= 固定費 ================= -->
+  <!-- ================= 毎月（報酬・固定費） =================
+       毎月決まっているお金を、入り（報酬）と出（固定費）で1タブにまとめてある。
+       どちらも「契約が変わったら金額を直す」ものなので、探す場所が同じ方が迷わない。
+       ナビの data-go は fixed のまま（?tab=fixed の古いリンクを殺さないため）。 -->
   <section class="view" data-view="fixed" hidden>
     <div class="plate">
       <div class="tape" aria-hidden="true"></div>
-      <div class="lbl">登録した固定費</div><span class="lbl-sub">手残りから毎月引かれる</span>
+      <div class="lbl">毎月の報酬</div><span class="lbl-sub">契約が変わったらここで直す</span>
+      <div id="freelanceList"></div>
+      <div class="morebox" id="freelanceMore"></div>
+    </div>
+    <div class="plate" id="freelanceFormBox"><div class="tape r" aria-hidden="true"></div><div id="freelanceForm"></div></div>
+
+    <div class="plate">
+      <div class="tape k" aria-hidden="true"></div>
+      <div class="lbl wine">登録した固定費</div><span class="lbl-sub">手残りから毎月引かれる</span>
       <div id="fixedList"></div>
       <img class="stick st-fixed" src="img/bag-boy.webp" alt="" aria-hidden="true">
     </div>
@@ -218,7 +229,9 @@
     <button type="button" data-go="dash" class="on" aria-label="ダッシュボード"><span class="plate-ic" aria-hidden="true"><svg><use href="#ic-dash"/></svg></span><span>DASH</span></button>
     <button type="button" data-go="consign" aria-label="委託"><span class="plate-ic" aria-hidden="true"><svg><use href="#ic-consign"/></svg></span><span>委託</span></button>
     <button type="button" data-add="1" aria-label="追加する"><span class="plate-ic plus" aria-hidden="true"></span><span>追加</span></button>
-    <button type="button" data-go="fixed" aria-label="固定費"><span class="plate-ic" aria-hidden="true"><svg><use href="#ic-fixed"/></svg></span><span>固定費</span></button>
+    <!-- 報酬と固定費の2つが入るタブ。「固定費・報酬」は 320px だと5等分の枠(62px)に収まらないので、
+         ラベルは2文字の「毎月」にして、中身はプレートの見出しで名乗る -->
+    <button type="button" data-go="fixed" aria-label="毎月の報酬と固定費"><span class="plate-ic" aria-hidden="true"><svg><use href="#ic-fixed"/></svg></span><span>毎月</span></button>
     <button type="button" data-go="expense" aria-label="経費"><span class="plate-ic" aria-hidden="true"><svg><use href="#ic-expense"/></svg></span><span>経費</span></button>
   </div>
 </nav>
