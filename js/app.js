@@ -40,9 +40,15 @@
     return e.code === 'AUTH' || e.code === 'LOCKED' || e.code === 'SETUP';
   }
 
-  /** 読むのが目的のとき（起動・年の切替）。失敗の理由をそのまま出す。 */
+  /**
+   * 読むのが目的のとき（起動・年の切替）。失敗の理由をそのまま出す。
+   * 読めなかったら年セレクタも戻す。戻さないと、セレクタは新しい年を指しているのに
+   * 中身は前の年のまま、という「選んだ年について嘘をつく」画面になる
+   * （保存先は S.year なのでデータは壊れないが、どの年を見ているか分からなくなる）。
+   */
   function reload(year) {
     return boot(year).catch(function (e) {
+      if (S) $('year').value = S.year;
       if (!handledByGate(e)) IncViews.toast(e.message, true);
     });
   }
@@ -240,6 +246,10 @@
    *    送る発生月は「S.year × フォームの月」（withYear）なので年だけが差し替わり、
    *    指紋は行の中身を見ているだけなので一致してしまい、楽観ロックでは止まらない。
    *    一覧からその年の行が消えても、hidden は画面に見えないので気づけない。
+   *
+   * hidden だけ消して入力中の値は残す手もあるが、フォーム全部を新規に戻す方を選んだ。
+   * 掴んだ行の値が入ったまま「追加」の顔になるフォームは、次の保存が
+   * 更新なのか追加なのかを画面から読めなくする。年をまたぐのは日に何度もある操作ではない。
    */
   function dropGrabbedRows() {
     if (!releaseForms) return;
@@ -398,9 +408,9 @@
    * それをそのまま使うと12月だけになる。年ごと畳まないのが正しい。
    */
   function renderFreelance() {
-    var from = (!freelanceAll && S.year === new Date().getFullYear()) ? S.thisMonth : 0;
-    IncViews.freelance(S, from, editFreelance, function () {
-      freelanceAll = true;
+    var cut = (S.year === new Date().getFullYear()) ? S.thisMonth : 0;
+    IncViews.freelance(S, cut, freelanceAll, editFreelance, function () {
+      freelanceAll = !freelanceAll;
       renderFreelance();
     });
   }

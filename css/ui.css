@@ -80,8 +80,13 @@ textarea{min-height:64px;line-height:1.5}
   background:var(--paper2);color:var(--ink)}
 .row2{display:grid;grid-template-columns:1fr auto;gap:9px;align-items:start}
 /* 報酬の削除。ふだんは目立たせない（消すための画面ではない）。
-   1タップ目で armed が付いて赤くなる＝「次に押したら消える」を色でも出す（文言は forms.js） */
-.btn.del{margin-top:10px}
+   1タップ目で armed が付いて赤くなる＝「次に押したら消える」を色でも出す（文言は forms.js）。
+   「保存する」と同じ左列に10pxで続けない。親指が保存を狙って下にズレると削除が arm し、
+   赤くなったボタンを保存だと思って叩くと消える。破線で切って距離も取る
+   （区切りは疑似要素で描き、ボタン自身の枠線は armed の赤に使うぶんを残す） */
+.btn.del{margin-top:30px;position:relative}
+.btn.del::before{content:"";position:absolute;left:0;right:0;top:-16px;
+  border-top:2px dashed rgba(25,21,25,.3)}
 .btn.del.armed{background:var(--wine);color:var(--paper2);border-color:var(--wine);
   box-shadow:2px 2px 0 var(--ink)}
 

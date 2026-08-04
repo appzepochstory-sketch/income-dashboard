@@ -6,8 +6,10 @@
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title>EPOCHSTORY / INCOME</title>
-<link rel="stylesheet" href="css/skin.css">
-<link rel="stylesheet" href="css/ui.css">
+<!-- ?v= はデプロイのたびに上げる。HTML は毎回取り直されるが、css/js は取り直されない。
+     これが無いと、直したはずのコードが端末に届かない（iOS Safari で実際に古い app.js が動いた・2026-08-04）。 -->
+<link rel="stylesheet" href="css/skin.css?v=20260804a">
+<link rel="stylesheet" href="css/ui.css?v=20260804a">
 </head>
 <body>
 
@@ -192,8 +194,11 @@
     <div class="plate">
       <div class="tape" aria-hidden="true"></div>
       <div class="lbl">毎月の報酬</div><span class="lbl-sub">契約が変わったらここで直す</span>
-      <div id="freelanceList"></div>
+      <!-- 「過ぎた月も出す」は一覧の“上”。下に置くと、畳んでいる間はボタンが1600px下にあって
+           月が隠れていること自体に気づけず、押した瞬間は増えたぶんが全部画面より上に入るので
+           何も起きなかったように見える。上なら、開いた1月がボタンのすぐ下に出る。 -->
       <div class="morebox" id="freelanceMore"></div>
+      <div id="freelanceList"></div>
     </div>
     <div class="plate" id="freelanceFormBox"><div class="tape r" aria-hidden="true"></div><div id="freelanceForm"></div></div>
 
@@ -246,12 +251,12 @@
 <datalist id="dlSquareItems"></datalist>
 <div class="toast" id="toast" role="status"></div>
 
-<script src="js/config.js"></script>
-<script src="js/theme.js"></script>
-<script src="js/api.js"></script>
-<script src="js/forms.js"></script>
-<script src="js/views.js"></script>
-<script src="js/sheet.js"></script>
-<script src="js/app.js"></script>
+<script src="js/config.js?v=20260804a"></script>
+<script src="js/theme.js?v=20260804a"></script>
+<script src="js/api.js?v=20260804a"></script>
+<script src="js/forms.js?v=20260804a"></script>
+<script src="js/views.js?v=20260804a"></script>
+<script src="js/sheet.js?v=20260804a"></script>
+<script src="js/app.js?v=20260804a"></script>
 </body>
 </html>

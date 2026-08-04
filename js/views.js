@@ -437,20 +437,30 @@ window.IncViews = (function () {
    * 同じ数字が画面ごとに違う名前で出てしまう。
    */
   function monthHead(S, m, total) {
-    var ahead = isFuture(S, m);
+    // 進行中の月は「実績」と名乗らせない。8月4日に8月を実績と書くと、入金日が空の行ばかり並ぶ月に
+    // 「もうもらった」と書くことになる（オーナーの言い方でも今月は「過ぎた月」ではない）。
+    // DASH 側の集計（1〜今月を実績に数える）は動かさず、この一覧の呼び名だけ3つに分ける。
+    var now = new Date();
+    var isNow = S.year === now.getFullYear() && m === now.getMonth();
+    var cls = isNow ? 'now' : (isFuture(S, m) ? 'sold' : 'q');
+    var word = isNow ? '今月' : (isFuture(S, m) ? '確定分' : '実績');
     var h = el('div', 'mhead');
     h.appendChild(el('b', null, (m + 1) + '月'));
-    h.appendChild(el('span', 'tag ' + (ahead ? 'sold' : 'q'), ahead ? '確定分' : '実績'));
+    h.appendChild(el('span', 'tag ' + cls, word));
     h.appendChild(el('span', 'amt', yen(total)));
     return h;
   }
 
   /**
    * 報酬（フリーランス収入）の一覧。契約が変わったら金額を直す場所なので月ごとにまとめる。
-   * 既定で開いて見えるのは from 月から先＝これから変わりうる月だけ。
-   * 過ぎた月も編集できるが、直す機会が少ないので onMore の後ろに畳んである。
+   * 既定で開いて見えるのは cut 月から先＝これから変わりうる月だけ。
+   * 過ぎた月も編集できるが、直す機会が少ないので既定では畳んである（all で開く）。
+   *
+   * cut は「畳んだときの境目」で、開いていても変えない。開いた状態でも境目が分かっていないと
+   * 「畳む」に戻せなくなる（畳む先の月が計算できない）。
    */
-  function freelance(S, from, onEdit, onMore) {
+  function freelance(S, cut, all, onEdit, onToggle) {
+    var from = all ? 0 : cut;
     // API が報酬を返す前の版でも画面ごと落とさない（描画は1本の render で連なっているので、
     // ここで例外を出すと DASH まで真っ白になる）。デプロイの前後が入れ替わっても耐える。
     var rows = S.lists.freelance || [];
@@ -498,13 +508,18 @@ window.IncViews = (function () {
     var parts = [];
     if (done) parts.push('実績 ' + yen(done));
     if (ahead) parts.push('確定分 ' + yen(ahead));
-    box.appendChild(el('div', 'foot', S.year + '年ぶん ' + yen(done + ahead) + '（' + parts.join(' ／ ') + '）'));
+    // 「報酬ぶん」と名乗らせる。DASH の「年末までの着地」も同じ桁の数字だが、あちらは物販・委託・
+    // イラストを含む別物。見出し（毎月の報酬）はスクロールで視界から外れるので、ここで名乗り直す。
+    box.appendChild(el('div', 'foot', S.year + '年の報酬ぶん ' + yen(done + ahead) + '（' + parts.join(' ／ ') + '）'));
 
-    var hidden = rows.length - view.length;
-    if (hidden > 0) {
-      var mb = el('button', 'btn ghost', '1〜' + from + '月も出す（' + hidden + '件）');
+    // 畳める月がある年は、開いていても畳んでいてもボタンを出す（開きっぱなしから戻れる道を残す）。
+    // cut が 0 の年は畳むものが無いので何も出さない。
+    var foldable = cut > 0 && rows.some(function (r) { return r.m < cut; });
+    if (foldable) {
+      var n = rows.filter(function (r) { return r.m < cut; }).length;
+      var mb = el('button', 'btn ghost', all ? '1〜' + cut + '月を畳む' : '1〜' + cut + '月も出す（' + n + '件）');
       mb.type = 'button';
-      mb.onclick = onMore;
+      mb.onclick = onToggle;
       more.appendChild(mb);
     }
   }

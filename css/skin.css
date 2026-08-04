@@ -217,11 +217,19 @@ main{max-width:640px;margin:0 auto;padding:18px 13px 8px}
 .foot{font-size:11px;font-weight:800;color:var(--ink2);margin-top:11px}
 /* 報酬の月見出し。行より強く、プレート見出し(.lbl)より弱い。
    金額が乗るので傾けない（傾けてよいのは飾りだけ） */
-.mhead{display:flex;align-items:baseline;gap:8px;margin:16px 0 2px;padding-bottom:5px;
+.mhead{display:flex;align-items:baseline;gap:8px;margin:30px 0 4px;padding-bottom:6px;
   border-bottom:2px solid var(--ink)}
 .mhead:first-child{margin-top:2px}
-.mhead b{font-size:13px;font-weight:900;letter-spacing:.02em}
-.mhead .amt{margin-left:auto;font-size:14px}
+/* 月と月の小計は、行（13px/15px）より必ず大きく。同じか小さいと親子でなく兄弟に見え、
+   月の区切りが 1.5px 破線の行間と見分けられなくなる */
+.mhead b{font-size:17px;font-weight:900;letter-spacing:.02em}
+.mhead .amt{margin-left:auto;font-size:17px}
+/* 月バッジは枠線を外して塗りのピルにする。2px の黒枠は .btn.mini（編集）と同じ見た目で、
+   一覧に並ぶと「押せるもの」に見えてしまう */
+.mhead .tag{border:0;padding:2px 8px;border-radius:9px;font-size:10px}
+.mhead .tag.q{background:var(--paper3);color:var(--ink2)}      /* 実績＝済んだ話。落ち着かせる */
+.mhead .tag.now{background:var(--lime);color:var(--ink)}       /* 今月 */
+.mhead .tag.sold{background:var(--ink);color:var(--paper2)}    /* 確定分＝これから直す月。ここを目立たせる */
 .bignum{font-size:clamp(24px,9vw,34px);font-weight:900;letter-spacing:-.03em;margin:2px 0 10px;white-space:nowrap}
 .footnote{font-size:10px;font-weight:700;color:var(--ink2);margin-top:12px;
   border-top:2px dashed rgba(25,21,25,.3);padding-top:9px;line-height:1.6}

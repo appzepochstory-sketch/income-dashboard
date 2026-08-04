@@ -23,6 +23,10 @@ window.IncForms = (function () {
 
   // 削除は2段階。1タップ目でここに変わり、押さずにいると DEL_CALM_MS で戻る。
   var DEL_LABEL = '削除';
+  // 掴んでいる行があるときは「やめる」と読める語にする。「新規に戻す」は
+  // 新しく入れるときの語で、編集からの逃げ道を探している指には引っかからない。
+  var CANCEL_NEW = '新規に戻す';
+  var CANCEL_EDIT = '編集をやめる';
   var DEL_CONFIRM = 'ほんとに消す？';
   var DEL_CALM_MS = 5000;
 
@@ -97,6 +101,8 @@ window.IncForms = (function () {
      */
     freelance: {
       title: '報酬を追加', editTitle: '報酬を編集', sub: '', btn: '保存する',
+      // 9〜12月は取引先も区分も金額も同じ行が並ぶ。月まで出さないと見分けられない
+      editLabel: function (r) { return r.month + '月・' + r.client + '／' + r.kind; },
       action: 'saveFreelance', okMsg: '報酬を保存したよ',
       editable: true, delAction: 'deleteFreelance', withYear: true,
       hidden: ['row', 'expected'],
@@ -104,7 +110,7 @@ window.IncForms = (function () {
         { n: 'month', l: '発生月', t: 'select', req: true, list: MONTHS, hint: '年はトップバーで選んでいる年になるよ' },
         { n: 'client', l: '取引先', t: 'select', req: true, opts: 'freelanceClients', add: '取引先の名前' },
         { n: 'kind', l: '区分', t: 'select', req: true, opts: 'freelanceKinds', add: '区分の名前' },
-        { n: 'amount', l: '金額（月額）', t: 'yen', req: true },
+        { n: 'amount', l: '金額（月額）', t: 'yen', req: true, min: 1 },
         { n: 'paid', l: '入金日', t: 'date', hint: '空欄＝まだ入金されてない' },
         { n: 'note', l: '備考', t: 'text' }
       ]
@@ -229,6 +235,8 @@ window.IncForms = (function () {
       input.type = 'number';
       input.inputMode = 'numeric';
       input.placeholder = '0';
+      // min は欄ごとに付ける（t:'yen' 全体に効かせない）。経費は返金の相殺でマイナスを入れる余地がある。
+      if (f.min != null) input.min = f.min;
     } else {
       input.type = 'text';
       if (f.ph) input.placeholder = f.ph;
@@ -250,13 +258,16 @@ window.IncForms = (function () {
     return b;
   }
 
-  var delTimer;
-
-  /** 削除ボタンを「押していない状態」に戻す。show=false なら隠す（＝新規入力のとき）。 */
+  /**
+   * 削除ボタンを「押していない状態」に戻す。show=false なら隠す（＝新規入力のとき）。
+   * タイマーはボタン自身に持たせる。モジュールに1本だけ置くと、削除できるフォームが2つ以上に
+   * 増えた瞬間に壊れる（Bを arm した clearTimeout が Aのぶんまで消し、
+   * Aの赤い「ほんとに消す？」が戻らなくなる＝次に触った指が消す）。
+   */
   function calmDelete(form, show) {
     var b = form.querySelector('[data-del]');
     if (!b) return;
-    clearTimeout(delTimer);
+    clearTimeout(b._calm);
     b.hidden = !show;
     b.textContent = DEL_LABEL;
     b.classList.remove('armed');
@@ -267,9 +278,9 @@ window.IncForms = (function () {
   function armDelete(btn) {
     btn.dataset.armed = '1';
     btn.classList.add('armed');
-    btn.textContent = DEL_CONFIRM;
-    clearTimeout(delTimer);
-    delTimer = setTimeout(function () { calmDelete(btn.closest('form'), true); }, DEL_CALM_MS);
+    btn.textContent = btn.dataset.what ? btn.dataset.what + ' を消す？' : DEL_CONFIRM;
+    clearTimeout(btn._calm);
+    btn._calm = setTimeout(function () { calmDelete(btn.closest('form'), true); }, DEL_CALM_MS);
   }
 
   function buildField(f, options) {
@@ -363,7 +374,7 @@ window.IncForms = (function () {
       var cancel = el('button', 'btn ghost mini');
       cancel.type = 'button';
       cancel.dataset.reset = '1';
-      cancel.textContent = '新規に戻す';
+      cancel.textContent = CANCEL_NEW;
       actions.appendChild(submit);
       actions.appendChild(cancel);
       form.appendChild(actions);
@@ -462,6 +473,8 @@ window.IncForms = (function () {
     form.querySelectorAll('input[type=hidden]').forEach(function (h) { h.value = ''; });
     form.querySelectorAll('.newin').forEach(function (n) { n.value = ''; n.hidden = true; });
     calmDelete(form, false);        // 新規入力に消すものは無い
+    var cancelNew = form.querySelector('[data-reset]');
+    if (cancelNew) cancelNew.textContent = CANCEL_NEW;
     // 日付の初期値（今日）も reset() では戻らないので入れ直す
     D.fields.forEach(function (f) {
       if (f.t !== 'date' || !f.today) return;
@@ -485,7 +498,14 @@ window.IncForms = (function () {
       setValue(input, record[f.n]);
     });
     calmDelete(form, true);         // 掴んだ行があるときだけ消せる
-    setTitle(form, D.editTitle + (record.name ? '（' + record.name + '）' : ''));
+    var cancelEdit = form.querySelector('[data-reset]');
+    if (cancelEdit) cancelEdit.textContent = CANCEL_EDIT;
+    // 何を触っているのかを見出しで名乗る。報酬レコードに name は無いので、
+    // record.name だけを見ていると9〜12月の同名・同額の行を見分けられない（消す前の最後の砦）。
+    var who = D.editLabel ? D.editLabel(record) : record.name;
+    setTitle(form, D.editTitle + (who ? '（' + who + '）' : ''));
+    var del = form.querySelector('[data-del]');
+    if (del) del.dataset.what = who || '';
   }
 
   function setTitle(form, text) {
