@@ -17,6 +17,7 @@
   var consignLimit = 8;
   var freelanceAll = false;         // 報酬で過ぎた月も出すか（既定は「これから」だけ）
   var formsReady = false;
+  var releaseForms = false;         // 年が変わった＝掴んでいる行を手放す（下の show / render を参照）
   var $ = function (id) { return document.getElementById(id); };
 
   // ---------- 起動 ----------
@@ -61,7 +62,10 @@
     // 年が変わったら、その年の「いちばん新しい月」に合わせ直す（前年を開いたら12月）。
     // 同じ年の読み直し（保存のあと）では、見ていた月を動かさない。
     var sameYear = S && S.year === data.year;
-    if (!sameYear) freelanceAll = false;   // 年を変えたら報酬の畳み方も初期状態に戻す
+    if (!sameYear) {
+      freelanceAll = false;   // 年を変えたら報酬の畳み方も初期状態に戻す
+      releaseForms = true;    // 掴んでいる行も手放す（下の render で実行する）
+    }
     S = data;
     if (urlMonth != null) { selMonth = urlMonth; urlMonth = null; }
     else if (selMonth == null || !sameYear) selMonth = S.thisMonth;
@@ -77,6 +81,7 @@
     fillYear();
     fillMonth();
     ensureForms();
+    dropGrabbedRows();
     IncForms.refreshOptions(document, S.options);
     fillSquareItems();
     fillHints();
@@ -225,6 +230,24 @@
       $(p[0]).appendChild(IncForms.build(p[1], S.options));
     });
     IncForms.wire(document);
+  }
+
+  /**
+   * 年が変わったら、編集中のフォームが掴んでいる行（hidden の row / expected）を手放す。
+   *
+   * ⚠️ これが無いと、2026年の行の「編集」を押したあとトップバーで2027年に切り替え、
+   *    そのまま保存したときに **2026年の行が2027年の行に書き換わる**。
+   *    送る発生月は「S.year × フォームの月」（withYear）なので年だけが差し替わり、
+   *    指紋は行の中身を見ているだけなので一致してしまい、楽観ロックでは止まらない。
+   *    一覧からその年の行が消えても、hidden は画面に見えないので気づけない。
+   */
+  function dropGrabbedRows() {
+    if (!releaseForms) return;
+    releaseForms = false;
+    ['consign', 'freelance', 'fixed', 'expense'].forEach(function (key) {
+      var form = formOf(key);
+      if (form) IncForms.reset(form);
+    });
   }
 
   function fillSquareItems() {
